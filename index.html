@@ -1,13 +1,224 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>My Google AI Studio App</title>
-  </head>
-  <body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Unblocked</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-[#0a0a0a] text-white">
     <div id="root"></div>
-    <script type="module" src="/src/index.jsx"></script>
-  </body>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const { motion, AnimatePresence } = window.Motion;
+
+        // Lucide Icon Component Wrapper
+        const Icon = ({ name, ...props }) => {
+            const LucideIcon = lucide[name];
+            return LucideIcon ? <LucideIcon {...props} /> : null;
+        };
+
+        const GAMES = [
+            { id: "2048", title: "2048", thumbnail: "https://picsum.photos/seed/2048/400/300", url: "https://play2048.co/", category: "Puzzle", rating: 4.8, isHot: true },
+            { id: "hextris", title: "Hextris", thumbnail: "https://picsum.photos/seed/hextris/400/300", url: "https://hextris.io/", category: "Arcade", rating: 4.5 },
+            { id: "slope", title: "Slope", thumbnail: "https://picsum.photos/seed/slope/400/300", url: "https://slopegame.io/", category: "Action", rating: 4.9, isHot: true },
+            { id: "cookie-clicker", title: "Cookie Clicker", thumbnail: "https://picsum.photos/seed/cookie/400/300", url: "https://orteil.dashnet.org/cookieclicker/", category: "Idle", rating: 4.7 },
+            { id: "tetris", title: "Tetris", thumbnail: "https://picsum.photos/seed/tetris/400/300", url: "https://tetris.com/play-tetris", category: "Classic", rating: 4.9 },
+            { id: "paper-io", title: "Paper.io 2", thumbnail: "https://picsum.photos/seed/paperio/400/300", url: "https://paper-io.com/", category: "IO", rating: 4.6, isNew: true },
+            { id: "minecraft-classic", title: "Minecraft Classic", thumbnail: "https://picsum.photos/seed/mc/400/300", url: "https://classic.minecraft.net/", category: "Sandbox", rating: 5.0, isHot: true },
+            { id: "bitlife", title: "BitLife", thumbnail: "https://picsum.photos/seed/bitlife/400/300", url: "https://bitlifeonline.io/", category: "Simulation", rating: 4.3 },
+            { id: "geometry-dash", title: "Geometry Dash", thumbnail: "https://picsum.photos/seed/gd/400/300", url: "https://geometrydash.io/", category: "Arcade", rating: 4.8, isHot: true },
+            { id: "subway-surfers", title: "Subway Surfers", thumbnail: "https://picsum.photos/seed/subway/400/300", url: "https://poki.com/en/g/subway-surfers", category: "Arcade", rating: 4.7 },
+            { id: "among-us", title: "Among Us Online", thumbnail: "https://picsum.photos/seed/among/400/300", url: "https://amongusplay.online/", category: "Action", rating: 4.5 }
+        ];
+
+        const CATEGORIES = ["All", "Action", "Puzzle", "Arcade", "Idle", "Classic", "IO", "Sandbox", "Simulation"];
+
+        function App() {
+            const [searchQuery, setSearchQuery] = useState("");
+            const [selectedCategory, setSelectedCategory] = useState("All");
+            const [selectedGame, setSelectedGame] = useState(null);
+            const [isStealthMode, setIsStealthMode] = useState(false);
+            const [showSettings, setShowSettings] = useState(false);
+
+            useEffect(() => {
+                if (isStealthMode) {
+                    document.title = "Google Classroom";
+                    const link = document.querySelector("link[rel*='icon']") || document.createElement('link');
+                    link.type = 'image/x-icon';
+                    link.rel = 'shortcut icon';
+                    link.href = 'https://ssl.gstatic.com/classroom/favicon.png';
+                    document.getElementsByTagName('head')[0].appendChild(link);
+                } else {
+                    document.title = "Nexus Unblocked";
+                    const link = document.querySelector("link[rel*='icon']");
+                    if (link) link.href = "https://cdn-icons-png.flaticon.com/512/686/686589.png";
+                }
+            }, [isStealthMode]);
+
+            const filteredGames = GAMES.filter(game => {
+                const matchesSearch = game.title.toLowerCase().includes(searchQuery.toLowerCase());
+                const matchesCategory = selectedCategory === "All" || game.category === selectedCategory;
+                return matchesSearch && matchesCategory;
+            });
+
+            return (
+                <div className="min-h-screen bg-[#0a0a0a] text-white font-sans selection:bg-orange-500 selection:text-white">
+                    <nav className="sticky top-0 z-50 bg-[#0a0a0a]/80 backdrop-blur-md border-b border-white/10">
+                        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+                            <div className="flex items-center gap-2 cursor-pointer" onClick={() => setSelectedGame(null)}>
+                                <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20">
+                                    <Icon name="Gamepad2" className="text-white" size={24} />
+                                </div>
+                                <span className="text-xl font-bold tracking-tighter hidden sm:block">NEXUS<span className="text-orange-500">GAMES</span></span>
+                            </div>
+
+                            <div className="flex-1 max-w-md mx-4">
+                                <div className="relative group">
+                                    <Icon name="Search" className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-orange-500 transition-colors" size={18} />
+                                    <input 
+                                        type="text"
+                                        placeholder="Search games..."
+                                        className="w-full bg-white/5 border border-white/10 rounded-full py-2 pl-10 pr-4 focus:outline-none focus:border-orange-500/50 focus:bg-white/10 transition-all text-sm"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <button onClick={() => setIsStealthMode(!isStealthMode)} className={`p-2 rounded-full transition-all ${isStealthMode ? 'bg-orange-500 text-white' : 'hover:bg-white/10 text-white/60'}`}>
+                                    <Icon name="Ghost" size={20} />
+                                </button>
+                                <button onClick={() => setShowSettings(!showSettings)} className="p-2 rounded-full hover:bg-white/10 text-white/60 transition-all">
+                                    <Icon name="Settings" size={20} />
+                                </button>
+                            </div>
+                        </div>
+                    </nav>
+
+                    <main className="max-w-7xl mx-auto px-4 py-8">
+                        <div className="flex items-center gap-2 overflow-x-auto pb-4 no-scrollbar mb-8">
+                            {CATEGORIES.map(cat => (
+                                <button key={cat} onClick={() => setSelectedCategory(cat)} className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${selectedCategory === cat ? 'bg-orange-500 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}>
+                                    {cat}
+                                </button>
+                            ))}
+                        </div>
+
+                        {!selectedGame && (
+                            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-12 relative rounded-3xl overflow-hidden aspect-[21/9] sm:aspect-[3/1] group">
+                                <img src="https://picsum.photos/seed/gaming/1200/400" alt="Featured" className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-transparent to-transparent" />
+                                <div className="absolute bottom-0 left-0 p-8">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <span className="bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">Featured</span>
+                                        <span className="text-white/60 text-xs flex items-center gap-1"><Icon name="Star" size={12} className="fill-orange-500 text-orange-500" /> 5.0 Rating</span>
+                                    </div>
+                                    <h1 className="text-4xl sm:text-5xl font-black mb-4 tracking-tight">MINECRAFT CLASSIC</h1>
+                                    <button onClick={() => setSelectedGame(GAMES.find(g => g.id === "minecraft-classic"))} className="bg-white text-black px-8 py-3 rounded-full font-bold hover:bg-orange-500 hover:text-white transition-all flex items-center gap-2">
+                                        Play Now <Icon name="ExternalLink" size={18} />
+                                    </button>
+                                </div>
+                            </motion.div>
+                        )}
+
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                            <AnimatePresence mode="popLayout">
+                                {filteredGames.map((game, index) => (
+                                    <motion.div layout key={game.id} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={{ delay: index * 0.05 }} onClick={() => setSelectedGame(game)} className="group cursor-pointer">
+                                        <div className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-white/5 border border-white/10 mb-3">
+                                            <img src={game.thumbnail} alt={game.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center shadow-xl shadow-orange-500/40">
+                                                    <Icon name="Gamepad2" size={24} />
+                                                </div>
+                                            </div>
+                                            {game.isNew && <span className="absolute top-3 left-3 bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase">New</span>}
+                                            {game.isHot && <span className="absolute top-3 left-3 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase">Hot</span>}
+                                        </div>
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <h3 className="font-bold text-white/90 group-hover:text-orange-500 transition-colors">{game.title}</h3>
+                                                <p className="text-xs text-white/40">{game.category}</p>
+                                            </div>
+                                            <div className="flex items-center gap-1 text-xs text-orange-500 font-medium">
+                                                <Icon name="Star" size={12} className="fill-orange-500" />
+                                                {game.rating}
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </AnimatePresence>
+                        </div>
+                    </main>
+
+                    <AnimatePresence>
+                        {selectedGame && (
+                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] bg-black/95 flex flex-col">
+                                <div className="h-14 border-b border-white/10 flex items-center justify-between px-4 bg-[#0a0a0a]">
+                                    <div className="flex items-center gap-3">
+                                        <button onClick={() => setSelectedGame(null)} className="p-2 hover:bg-white/10 rounded-full transition-all">
+                                            <Icon name="X" size={20} />
+                                        </button>
+                                        <h2 className="font-bold text-sm sm:text-base">{selectedGame.title}</h2>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <button className="p-2 hover:bg-white/10 rounded-full text-white/60 transition-all"><Icon name="Maximize2" size={18} /></button>
+                                        <button className="p-2 hover:bg-white/10 rounded-full text-white/60 transition-all"><Icon name="Info" size={18} /></button>
+                                        <a href={selectedGame.url} target="_blank" rel="noopener noreferrer" className="bg-orange-500 text-white px-4 py-1.5 rounded-full text-xs font-bold hover:bg-orange-600 transition-all flex items-center gap-2">
+                                            Open in New Tab <Icon name="ExternalLink" size={14} />
+                                        </a>
+                                    </div>
+                                </div>
+                                <div className="flex-1 bg-black relative">
+                                    <iframe src={selectedGame.url} className="w-full h-full border-none" title={selectedGame.title} allowFullScreen />
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    {showSettings && (
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowSettings(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+                            <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative w-full max-w-md bg-[#1a1a1a] border border-white/10 rounded-3xl overflow-hidden shadow-2xl p-6">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h2 className="text-xl font-bold">Settings</h2>
+                                    <button onClick={() => setShowSettings(false)} className="p-2 hover:bg-white/10 rounded-full"><Icon name="X" size={20} /></button>
+                                </div>
+                                <div className="space-y-6">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="font-bold">Stealth Mode</p>
+                                            <p className="text-xs text-white/40">Disguise tab as Google Classroom</p>
+                                        </div>
+                                        <button onClick={() => setIsStealthMode(!isStealthMode)} className={`w-12 h-6 rounded-full transition-all relative ${isStealthMode ? 'bg-orange-500' : 'bg-white/10'}`}>
+                                            <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${isStealthMode ? 'left-7' : 'left-1'}`} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
 </html>
 
