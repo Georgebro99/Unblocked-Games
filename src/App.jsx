@@ -19,18 +19,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
-interface Game {
-  id: string;
-  title: string;
-  thumbnail: string;
-  url: string;
-  category: string;
-  rating: number;
-  isNew?: boolean;
-  isHot?: boolean;
-}
-
-const GAMES: Game[] = [
+const GAMES = [
   {
     id: "2048",
     title: "2048",
@@ -139,7 +128,7 @@ const CATEGORIES = ["All", "Action", "Puzzle", "Arcade", "Idle", "Classic", "IO"
 export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
-  const [selectedGame, setSelectedGame] = useState<Game | null>(null);
+  const [selectedGame, setSelectedGame] = useState(null);
   const [isStealthMode, setIsStealthMode] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
@@ -147,14 +136,14 @@ export default function App() {
   useEffect(() => {
     if (isStealthMode) {
       document.title = "Google Classroom";
-      const link = document.querySelector("link[rel*='icon']") as HTMLLinkElement || document.createElement('link');
+      const link = document.querySelector("link[rel*='icon']") || document.createElement('link');
       link.type = 'image/x-icon';
       link.rel = 'shortcut icon';
       link.href = 'https://ssl.gstatic.com/classroom/favicon.png';
       document.getElementsByTagName('head')[0].appendChild(link);
     } else {
       document.title = "Nexus Unblocked";
-      const link = document.querySelector("link[rel*='icon']") as HTMLLinkElement;
+      const link = document.querySelector("link[rel*='icon']");
       if (link) link.href = "/vite.svg";
     }
   }, [isStealthMode]);
