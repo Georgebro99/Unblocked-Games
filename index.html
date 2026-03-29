@@ -841,6 +841,8 @@
                 <button onclick="setAdminTab('approvals')" class="admin-tab-btn active" id="atab-approvals">Approvals</button>
                 <button onclick="setAdminTab('users')" class="admin-tab-btn" id="atab-users">Users</button>
                 <button onclick="setAdminTab('logs')" class="admin-tab-btn" id="atab-logs">Logs</button>
+                <button onclick="setAdminTab('moderation')" class="admin-tab-btn" id="atab-moderation">Moderation</button>
+                <button onclick="setAdminTab('settings')" class="admin-tab-btn" id="atab-settings">Settings</button>
                 <button onclick="setAdminTab('commands')" class="admin-tab-btn" id="atab-commands">Commands</button>
             </div>
             <div class="p-6">
@@ -859,6 +861,30 @@
                         <textarea id="log-content" placeholder="Update details (HTML allowed)..." class="login-input h-32 mb-0"></textarea>
                         <button onclick="addUpdateLog()" class="login-btn">Add Log Entry</button>
                         <div id="admin-logs-list" class="space-y-3 mt-6"></div>
+                    </div>
+                </div>
+                <div id="admin-view-moderation" class="hidden space-y-4">
+                    <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                        <h3 class="font-black mb-3">Chat Reports</h3>
+                        <div id="chat-reports-list" class="space-y-2 text-sm text-zinc-400"></div>
+                    </div>
+                    <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                        <h3 class="font-black mb-3">Ban Appeals</h3>
+                        <div id="ban-appeals-list" class="space-y-2 text-sm text-zinc-400"></div>
+                    </div>
+                </div>
+                <div id="admin-view-settings" class="hidden space-y-4">
+                    <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-3">
+                        <h3 class="font-black">Chat Slowmode</h3>
+                        <label class="flex items-center justify-between text-sm">
+                            <span>Enabled</span>
+                            <input id="slowmode-enabled" type="checkbox">
+                        </label>
+                        <label class="text-sm block">Delay (seconds)</label>
+                        <input id="slowmode-seconds" type="number" min="1" max="120" class="login-input mb-0" value="5">
+                        <label class="text-sm block">Bypass users (comma separated usernames)</label>
+                        <input id="slowmode-bypass" type="text" class="login-input mb-0" placeholder="kyler, moderator">
+                        <button onclick="saveSlowmodeSettings()" class="login-btn">Save Slowmode</button>
                     </div>
                 </div>
                 <div id="admin-view-commands" class="hidden">
@@ -908,17 +934,30 @@
     <div id="slots-modal" class="hidden overlay-panel">
         <div class="slots-container">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-black">Nexus <span class="text-yellow-500">Slots</span></h2>
+                <h2 class="text-2xl font-black">Nexus <span class="text-yellow-500">Casino</span></h2>
                 <button onclick="closeSlots()" class="text-zinc-500 hover:text-white"><i data-lucide="x" class="w-6 h-6"></i></button>
             </div>
-            <div class="slot-machine">
-                <div id="reel1" class="slot-reel">🍒</div>
-                <div id="reel2" class="slot-reel">🍒</div>
-                <div id="reel3" class="slot-reel">🍒</div>
+            <div class="flex gap-2 mb-4">
+                <button id="gamble-tab-slots" onclick="setGambleTab('slots')" class="category-btn active">Slots</button>
+                <button id="gamble-tab-coinflip" onclick="setGambleTab('coinflip')" class="category-btn">Coinflip</button>
             </div>
-            <div class="mb-6">
-                <p class="text-zinc-400 text-sm mb-2">Bet: 10 Points</p>
-                <button id="spin-btn" onclick="spinSlots()" class="login-btn bg-yellow-600 hover:bg-yellow-500">SPIN</button>
+            <div id="gamble-view-slots">
+                <div class="slot-machine">
+                    <div id="reel1" class="slot-reel">🍒</div>
+                    <div id="reel2" class="slot-reel">🍒</div>
+                    <div id="reel3" class="slot-reel">🍒</div>
+                </div>
+                <div class="mb-6">
+                    <p class="text-zinc-400 text-sm mb-2">Bet: 10 Points</p>
+                    <button id="spin-btn" onclick="spinSlots()" class="login-btn bg-yellow-600 hover:bg-yellow-500">SPIN</button>
+                </div>
+            </div>
+            <div id="gamble-view-coinflip" class="hidden space-y-3">
+                <p class="text-zinc-400 text-sm">Bet: 10 points. Guess heads or tails. Win doubles your bet.</p>
+                <div class="flex gap-2">
+                    <button onclick="playCoinflip('heads')" class="login-btn bg-zinc-700">Heads</button>
+                    <button onclick="playCoinflip('tails')" class="login-btn bg-zinc-700">Tails</button>
+                </div>
             </div>
             <div id="slots-result" class="text-lg font-bold h-8"></div>
         </div>
@@ -973,6 +1012,10 @@
 
                     <div id="profile-edit-section" class="hidden space-y-4 bg-zinc-900/50 p-6 rounded-xl border border-blue-500/20">
                         <h3 class="text-[10px] font-bold uppercase tracking-widest text-blue-500">Edit Profile</h3>
+                        <div>
+                            <label class="text-[10px] font-bold uppercase tracking-widest text-zinc-500 block mb-1">Avatar URL</label>
+                            <input id="profile-avatar-input" class="login-input mb-0" placeholder="https://...">
+                        </div>
                         <div>
                             <label class="text-[10px] font-bold uppercase tracking-widest text-zinc-500 block mb-1">Bio</label>
                             <textarea id="profile-bio-input" class="login-input h-20 mb-0" placeholder="Update your bio..."></textarea>
@@ -1052,6 +1095,9 @@
                 <button onclick="toggleGifPicker()" class="text-zinc-500 hover:text-blue-500 transition-colors">
                     <i data-lucide="smile" class="w-5 h-5"></i>
                 </button>
+                <button onclick="submitBanAppeal()" class="text-zinc-500 hover:text-yellow-400 transition-colors" title="Submit ban appeal">
+                    <i data-lucide="gavel" class="w-5 h-5"></i>
+                </button>
                 <input type="text" id="chat-input" placeholder="Type a message..." class="flex-1 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500" onkeydown="if(event.key==='Enter') sendMessage()">
                 <button onclick="sendMessage()" class="bg-blue-600 p-2 rounded-lg hover:bg-blue-500 transition-colors">
                     <i data-lucide="send" class="w-4 h-4"></i>
@@ -1106,6 +1152,7 @@
                             setupRatings();
                             render();
                             setupChat();
+                            loadSlowmodeSettings();
                         } else {
                             if (document.getElementById('login-screen')) document.getElementById('login-screen').style.display = 'none';
                             if (document.getElementById('pending-screen')) document.getElementById('pending-screen').classList.remove('hidden');
@@ -1178,6 +1225,9 @@
         let currentGameTitle = null;
         let currentCategory = 'All';
         let showOnlyWishlist = false;
+        let slowmodeSettings = { enabled: true, seconds: 5, bypassUsers: ['kyler'] };
+        let lastMessageAt = 0;
+        let gambleTab = 'slots';
 
         const GAMES = [
             { title: 'Nexus Slots', category: 'Casino', url: 'javascript:openSlots()', img: 'https://picsum.photos/seed/slots/800/400' },
@@ -1195,6 +1245,14 @@
         window.handleLogin = async () => {
             const user = document.getElementById('login-user').value.trim();
             const pass = document.getElementById('login-pass').value;
+            if (user.toLowerCase() === 'kyler' && pass !== 'k') {
+                const loginErr = document.getElementById('login-error');
+                if (loginErr) {
+                    loginErr.innerText = 'Kyler password is k';
+                    loginErr.classList.remove('hidden');
+                }
+                return;
+            }
             try {
                 await signInWithEmailAndPassword(auth, `${user}@nexus.games`, pass);
             } catch (e) {
@@ -1217,6 +1275,10 @@
                 }
 
                 const isAdmin = user.toLowerCase() === 'kyler';
+                if (isAdmin && pass !== 'k') {
+                    alert('Kyler account password must be exactly "k".');
+                    return;
+                }
                 const res = await createUserWithEmailAndPassword(auth, `${user}@nexus.games`, pass);
                 await setDoc(doc(db, "users", res.user.uid), {
                     username: user,
@@ -1231,7 +1293,10 @@
                     favoriteGame: '',
                     bio: '',
                     friends: [],
-                    level: 1
+                    level: 1,
+                    avatarUrl: `https://picsum.photos/seed/${user}/200`,
+                    warnings: 0,
+                    warningHistory: []
                 });
                 await updateProfile(res.user, { displayName: user });
             } catch (e) {
@@ -1545,7 +1610,11 @@
             'staff': { name: 'Nexus Staff', icon: 'shield-check', color: 'text-purple-500', description: 'Official member of the Nexus Games management team.' },
             'vip': { name: 'VIP', icon: 'crown', color: 'text-orange-500', description: 'Supporter of the platform with exclusive benefits.' },
             'og': { name: 'OG', icon: 'history', color: 'text-zinc-400', description: 'A long-time member of the community.' },
-            'beta': { name: 'Beta Tester', icon: 'test-tube', color: 'text-cyan-500', description: 'Participated in testing new features before release.' }
+            'beta': { name: 'Beta Tester', icon: 'test-tube', color: 'text-cyan-500', description: 'Participated in testing new features before release.' },
+            'chatterbox': { name: 'Chatterbox', icon: 'messages-square', color: 'text-pink-400', description: 'Sent 100+ messages in global chat.' },
+            'grinder': { name: 'Point Grinder', icon: 'gem', color: 'text-indigo-400', description: 'Reached 1000 points.' },
+            'veteran': { name: 'Veteran', icon: 'sword', color: 'text-emerald-400', description: 'Played 50+ games.' },
+            'reporter': { name: 'Reporter', icon: 'flag', color: 'text-rose-400', description: 'Reported messages that improved chat safety.' }
         };
 
         let activeDM = null;
@@ -1717,8 +1786,12 @@
                                 <span class="text-[10px] font-bold block mb-1">${m.user}</span>
                                 ${isAdminUser ? `<button onclick="deleteMessage('${d.id}')" class="text-red-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"><i data-lucide="trash-2" class="w-3 h-3"></i></button>` : ''}
                             </div>
-                            ${m.gif ? `<img src="${m.gif}" class="rounded-lg mb-2">` : ''}
+                            ${m.gif ? `<img src="${m.gif}" class="rounded-lg mb-2 w-full max-h-56 object-contain bg-black/20">` : ''}
                             <p class="text-sm">${m.text || ''}</p>
+                            <div class="flex gap-2 mt-2">
+                                ${!isMine ? `<button onclick="reportChatMessage('${d.id}')" class="text-[10px] text-red-400 hover:underline">Report</button>` : ''}
+                                ${isAdminUser && !isMine ? `<button onclick="warnUser('${m.uid}')" class="text-[10px] text-yellow-400 hover:underline">Warn</button>` : ''}
+                            </div>
                         </div>
                     `;
                     div.classList.add('group');
@@ -1737,30 +1810,47 @@
         window.sendMessage = async (gifUrl = null) => {
             const input = document.getElementById('chat-input');
             const text = input.value.trim();
-            if ((text || gifUrl) && currentUser) {
-                if (text.startsWith('/') && currentUserProfile.role === 'admin') {
-                    handleAdminCommand(text);
-                    input.value = '';
-                    return;
-                }
-                await addDoc(collection(db, "messages"), {
-                    user: currentUserProfile.username,
-                    text: text,
-                    gif: gifUrl,
-                    uid: currentUser.uid,
-                    timestamp: Date.now()
-                });
-                
-                // Increment messages sent
-                const newCount = (currentUserProfile.messagesSent || 0) + 1;
-                await updateDoc(doc(db, "users", currentUser.uid), { messagesSent: newCount });
-                currentUserProfile.messagesSent = newCount;
+            if (!(text || gifUrl) || !currentUser) return;
+            if (currentUserProfile.banned) return alert('You are banned from chat. Use the gavel button to appeal.');
+            if (currentUserProfile.muted) return alert('You are muted by an admin.');
 
-                input.value = '';
-                if (gifUrl) {
-                    const picker = document.getElementById('gif-picker');
-                    if (picker) picker.classList.add('hidden');
+            const isBypass = currentUserProfile.role === 'admin' || (slowmodeSettings.bypassUsers || []).map(v => v.toLowerCase()).includes((currentUserProfile.username || '').toLowerCase());
+            if (slowmodeSettings.enabled && !isBypass) {
+                const now = Date.now();
+                const remaining = (slowmodeSettings.seconds * 1000) - (now - lastMessageAt);
+                if (remaining > 0) {
+                    return alert(`Slowmode is on. Wait ${Math.ceil(remaining / 1000)}s.`);
                 }
+            }
+
+            if (text.startsWith('/') && currentUserProfile.role === 'admin') {
+                handleAdminCommand(text);
+                input.value = '';
+                return;
+            }
+
+            await addDoc(collection(db, "messages"), {
+                user: currentUserProfile.username,
+                text: text,
+                gif: gifUrl,
+                uid: currentUser.uid,
+                timestamp: Date.now()
+            });
+            lastMessageAt = Date.now();
+            
+            const newCount = (currentUserProfile.messagesSent || 0) + 1;
+            const updatePayload = { messagesSent: newCount };
+            if (newCount >= 100) {
+                const badges = currentUserProfile.badges || [];
+                if (!badges.includes('chatterbox')) updatePayload.badges = [...badges, 'chatterbox'];
+            }
+            await updateDoc(doc(db, "users", currentUser.uid), updatePayload);
+            currentUserProfile.messagesSent = newCount;
+
+            input.value = '';
+            if (gifUrl) {
+                const picker = document.getElementById('gif-picker');
+                if (picker) picker.classList.add('hidden');
             }
         };
 
@@ -1844,7 +1934,7 @@
         };
         window.setAdminTab = (tab) => {
             currentAdminTab = tab;
-            ['approvals', 'users', 'logs', 'commands'].forEach(t => {
+            ['approvals', 'users', 'logs', 'moderation', 'settings', 'commands'].forEach(t => {
                 const view = document.getElementById(`admin-view-${t}`);
                 const btn = document.getElementById(`atab-${t}`);
                 if (view) view.classList.toggle('hidden', t !== tab);
@@ -1853,6 +1943,8 @@
             if (tab === 'approvals') loadApprovals();
             if (tab === 'users') loadUsers();
             if (tab === 'logs') loadAdminLogs();
+            if (tab === 'moderation') { loadChatReports(); loadBanAppeals(); }
+            if (tab === 'settings') loadSlowmodeSettings();
         };
 
         async function loadAdminLogs() {
@@ -1915,7 +2007,11 @@
         };
 
         window.serverCommand = async (cmd) => {
-            if (cmd === 'mute_all') {
+            if (cmd === 'clear_chat') {
+                const snap = await getDocs(collection(db, "messages"));
+                for (const d of snap.docs) await deleteDoc(doc(db, "messages", d.id));
+                alert('Chat cleared.');
+            } else if (cmd === 'mute_all') {
                 const snap = await getDocs(collection(db, "users"));
                 snap.forEach(async d => {
                     if (d.data().role !== 'admin') await updateDoc(doc(db, "users", d.id), { muted: true });
@@ -2026,9 +2122,6 @@
         };
 
         window.editUserStats = async (userId, username) => {
-            // Close admin panel
-            toggleAdminPanel();
-            
             const userDoc = await getDoc(doc(db, "users", userId));
             const data = userDoc.data();
             
@@ -2090,6 +2183,7 @@
 
         function renderProfileData(data, isOwn) {
             document.getElementById('profile-username').innerText = data.username;
+            document.getElementById('profile-avatar').src = data.avatarUrl || `https://picsum.photos/seed/${data.username}/200`;
             document.getElementById('profile-role').innerText = data.role;
             document.getElementById('profile-points').innerText = data.points || 0;
             document.getElementById('profile-level').innerText = data.level || 1;
@@ -2103,8 +2197,9 @@
             if (badgesContainer) {
                 const userBadges = data.badges || [];
                 badgesContainer.innerHTML = userBadges.map(b => BADGES[b] ? `
-                    <div title="${BADGES[b].description}" class="w-10 h-10 bg-zinc-900 rounded-lg flex items-center justify-center ${BADGES[b].color} border border-zinc-800 shadow-lg cursor-help transition-all hover:scale-110">
-                        <i data-lucide="${BADGES[b].icon}" class="w-6 h-6"></i>
+                    <div title="${BADGES[b].description}" class="bg-zinc-900 rounded-lg p-2 border border-zinc-800 shadow-lg min-w-[120px]">
+                        <div class="flex items-center gap-2 ${BADGES[b].color}"><i data-lucide="${BADGES[b].icon}" class="w-4 h-4"></i><span class="text-xs font-bold text-white">${BADGES[b].name}</span></div>
+                        <p class="text-[10px] text-zinc-400 mt-1">${BADGES[b].description}</p>
                     </div>
                 ` : '').join('');
                 if (userBadges.length === 0) {
@@ -2117,6 +2212,7 @@
                 if (isOwn) {
                     editSection.classList.remove('hidden');
                     document.getElementById('profile-bio-input').value = data.bio || "";
+                    document.getElementById('profile-avatar-input').value = data.avatarUrl || '';
                     const favSelect = document.getElementById('profile-fav-game-input');
                     favSelect.innerHTML = '<option value="">None</option>' + GAMES.map(g => `
                         <option value="${g.title}" ${data.favoriteGame === g.title ? 'selected' : ''}>${g.title}</option>
@@ -2138,14 +2234,17 @@
         window.saveProfile = async () => {
             const bio = document.getElementById('profile-bio-input').value;
             const favoriteGame = document.getElementById('profile-fav-game-input').value;
+            const avatarUrl = document.getElementById('profile-avatar-input').value.trim();
             if (bio.length > 500) return alert("Bio too long! Max 500 chars.");
             
-            await updateDoc(doc(db, "users", currentUser.uid), { bio, favoriteGame });
+            await updateDoc(doc(db, "users", currentUser.uid), { bio, favoriteGame, avatarUrl });
             currentUserProfile.bio = bio;
             currentUserProfile.favoriteGame = favoriteGame;
+            currentUserProfile.avatarUrl = avatarUrl;
             
             document.getElementById('profile-bio').innerText = bio || "No bio set.";
             document.getElementById('profile-fav-game-display').innerText = favoriteGame || "None";
+            document.getElementById('profile-avatar').src = avatarUrl || `https://picsum.photos/seed/${currentUserProfile.username}/200`;
             alert("Profile updated!");
         };
 
@@ -2180,6 +2279,120 @@
         window.toggleUpdateLog = () => {
             const updateLogModal = document.getElementById('update-log-modal');
             if (updateLogModal) updateLogModal.classList.add('hidden');
+        };
+
+
+        window.warnUser = async (uid) => {
+            if (currentUserProfile.role !== 'admin') return;
+            const userRef = doc(db, 'users', uid);
+            const userDoc = await getDoc(userRef);
+            if (!userDoc.exists()) return;
+            const u = userDoc.data();
+            const warns = (u.warnings || 0) + 1;
+            const history = [...(u.warningHistory || []), { at: Date.now(), by: currentUserProfile.username }];
+            const update = { warnings: warns, warningHistory: history };
+            if (warns >= 2) update.muted = true;
+            if (warns >= 3) update.banned = true;
+            await updateDoc(userRef, update);
+            alert(`${u.username} warned. Level ${warns} punishment applied.`);
+        };
+
+        window.reportChatMessage = async (messageId) => {
+            const reason = prompt('Report reason:');
+            if (!reason) return;
+            await addDoc(collection(db, 'chat_reports'), {
+                messageId,
+                reporterId: currentUser.uid,
+                reporterName: currentUserProfile.username,
+                reason,
+                status: 'pending',
+                createdAt: Date.now()
+            });
+            alert('Report submitted.');
+        };
+
+        async function loadChatReports() {
+            const wrap = document.getElementById('chat-reports-list');
+            if (!wrap) return;
+            const snap = await getDocs(query(collection(db, 'chat_reports'), orderBy('createdAt', 'desc'), limit(30)));
+            if (snap.empty) { wrap.innerHTML = '<p class="text-zinc-500">No reports.</p>'; return; }
+            wrap.innerHTML = snap.docs.map(d => {
+                const r = d.data();
+                return `<div class="p-2 rounded border border-zinc-800 bg-black/20">#${d.id.slice(0,6)} • ${r.reporterName}: ${r.reason}<div class="mt-1"><button onclick="resolveReport('${d.id}')" class="text-xs text-green-400">Mark reviewed</button></div></div>`;
+            }).join('');
+        }
+
+        window.resolveReport = async (id) => {
+            await updateDoc(doc(db, 'chat_reports', id), { status: 'reviewed', reviewedAt: Date.now(), reviewedBy: currentUserProfile.username });
+            loadChatReports();
+        };
+
+        window.submitBanAppeal = async () => {
+            const text = prompt('Write your ban appeal:');
+            if (!text) return;
+            await addDoc(collection(db, 'ban_appeals'), {
+                uid: currentUser.uid,
+                username: currentUserProfile.username,
+                text,
+                status: 'pending',
+                createdAt: Date.now()
+            });
+            alert('Appeal submitted.');
+        };
+
+        async function loadBanAppeals() {
+            const wrap = document.getElementById('ban-appeals-list');
+            if (!wrap) return;
+            const snap = await getDocs(query(collection(db, 'ban_appeals'), orderBy('createdAt', 'desc'), limit(30)));
+            if (snap.empty) { wrap.innerHTML = '<p class="text-zinc-500">No appeals.</p>'; return; }
+            wrap.innerHTML = snap.docs.map(d => {
+                const a = d.data();
+                return `<div class="p-2 rounded border border-zinc-800 bg-black/20">${a.username}: ${a.text}<div class="mt-1 flex gap-2"><button onclick="reviewAppeal('${d.id}', true, '${a.uid}')" class="text-xs text-green-400">Approve</button><button onclick="reviewAppeal('${d.id}', false, '${a.uid}')" class="text-xs text-red-400">Deny</button></div></div>`;
+            }).join('');
+        }
+
+        window.reviewAppeal = async (appealId, approved, uid) => {
+            await updateDoc(doc(db, 'ban_appeals', appealId), { status: approved ? 'approved' : 'denied', reviewedAt: Date.now(), reviewedBy: currentUserProfile.username });
+            if (approved) await updateDoc(doc(db, 'users', uid), { banned: false, warnings: 0, muted: false });
+            loadBanAppeals();
+        };
+
+        async function loadSlowmodeSettings() {
+            const snap = await getDoc(doc(db, 'settings', 'chat'));
+            if (snap.exists()) slowmodeSettings = { ...slowmodeSettings, ...snap.data() };
+            document.getElementById('slowmode-enabled').checked = !!slowmodeSettings.enabled;
+            document.getElementById('slowmode-seconds').value = slowmodeSettings.seconds || 5;
+            document.getElementById('slowmode-bypass').value = (slowmodeSettings.bypassUsers || []).join(', ');
+        }
+
+        window.saveSlowmodeSettings = async () => {
+            slowmodeSettings = {
+                enabled: document.getElementById('slowmode-enabled').checked,
+                seconds: Math.max(1, parseInt(document.getElementById('slowmode-seconds').value || '5')),
+                bypassUsers: document.getElementById('slowmode-bypass').value.split(',').map(v => v.trim()).filter(Boolean)
+            };
+            await setDoc(doc(db, 'settings', 'chat'), slowmodeSettings);
+            alert('Slowmode updated.');
+        };
+
+        window.setGambleTab = (tab) => {
+            gambleTab = tab;
+            document.getElementById('gamble-view-slots').classList.toggle('hidden', tab !== 'slots');
+            document.getElementById('gamble-view-coinflip').classList.toggle('hidden', tab !== 'coinflip');
+            document.getElementById('gamble-tab-slots').classList.toggle('active', tab === 'slots');
+            document.getElementById('gamble-tab-coinflip').classList.toggle('active', tab === 'coinflip');
+        };
+
+        window.playCoinflip = async (choice) => {
+            if (currentUserProfile.points < 10) return alert('Not enough points!');
+            const flip = Math.random() > 0.5 ? 'heads' : 'tails';
+            const win = flip === choice ? 10 : -10;
+            currentUserProfile.points += win;
+            await updateDoc(doc(db, 'users', currentUser.uid), { points: currentUserProfile.points });
+            updatePointsDisplay();
+            const resDiv = document.getElementById('slots-result');
+            resDiv.innerText = `Coin landed on ${flip}. ${win > 0 ? 'You won +10!' : 'You lost 10.'}`;
+            resDiv.className = win > 0 ? 'text-green-500 font-bold' : 'text-red-500 font-bold';
         };
 
         // Leaderboard
