@@ -1130,10 +1130,39 @@
         let appInitError = '';
         let initPromise = null;
 
+        async function loadFirebaseConfig() {
+            const candidates = [
+                '/firebase-applet-config.json',
+                './firebase-applet-config.json',
+                new URL('firebase-applet-config.json', window.location.href).toString()
+            ];
+            let lastError = '';
+
+            for (const url of candidates) {
+                try {
+                    const res = await fetch(url, { cache: 'no-store' });
+                    const text = await res.text();
+                    const trimmed = text.trim();
+                    if (!res.ok) {
+                        lastError = `HTTP ${res.status} from ${url}`;
+                        continue;
+                    }
+                    if (!trimmed.startsWith('{')) {
+                        lastError = `Non-JSON response from ${url}`;
+                        continue;
+                    }
+                    return JSON.parse(trimmed);
+                } catch (err) {
+                    lastError = err?.message || String(err);
+                }
+            }
+
+            throw new Error(`Unable to load firebase-applet-config.json (${lastError})`);
+        }
+
         async function initFirebase() {
             try {
-                const configRes = await fetch('/firebase-applet-config.json');
-                const firebaseConfig = await configRes.json();
+                const firebaseConfig = await loadFirebaseConfig();
                 app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
                 db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
