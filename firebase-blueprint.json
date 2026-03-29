@@ -20,6 +20,10 @@
         "uid": {
           "type": "string",
           "description": "The user's unique ID"
+        },
+        "reactions": {
+          "type": "object",
+          "description": "Map of user UIDs to their emoji reaction"
         }
       },
       "required": ["user", "text", "timestamp", "uid"]
@@ -48,6 +52,54 @@
         "createdAt": {
           "type": "number",
           "description": "When the user signed up"
+        },
+        "points": {
+          "type": "number",
+          "description": "User points earned from messages and games"
+        },
+        "messagesSent": {
+          "type": "number",
+          "description": "Total messages sent by user"
+        },
+        "gamesPlayed": {
+          "type": "number",
+          "description": "Total games played by user"
+        },
+        "bio": {
+          "type": "string",
+          "description": "User bio/status"
+        },
+        "banned": {
+          "type": "boolean",
+          "description": "Whether user is banned"
+        },
+        "banReason": {
+          "type": "string",
+          "description": "Reason for ban"
+        },
+        "muted": {
+          "type": "boolean",
+          "description": "Whether user is muted"
+        },
+        "mutedUntil": {
+          "type": "number",
+          "description": "Timestamp when mute expires"
+        },
+        "favoriteGame": {
+          "type": "string",
+          "description": "User's favorite game to display on profile"
+        },
+        "totalPlaytime": {
+          "type": "number",
+          "description": "Total playtime in minutes"
+        },
+        "status": {
+          "type": "string",
+          "description": "User status (Online, Away, Do Not Disturb, Gaming, Idle)"
+        },
+        "profileColor": {
+          "type": "string",
+          "description": "Profile accent color hex code"
         }
       },
       "required": ["username", "email", "approved", "role", "createdAt"]
@@ -79,6 +131,23 @@
         "channelId": { "type": "string" }
       },
       "required": ["participants", "text", "senderId", "senderName", "timestamp", "channelId"]
+    },
+    "GameSuggestion": {
+      "title": "GameSuggestion",
+      "description": "A community game suggestion",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "Suggested game title" },
+        "url": { "type": "string", "description": "Optional game URL" },
+        "category": { "type": "string", "description": "Game category" },
+        "suggestedBy": { "type": "string", "description": "UID of suggester" },
+        "suggestedByName": { "type": "string", "description": "Username of suggester" },
+        "votes": { "type": "number", "description": "Vote count" },
+        "voters": { "type": "object", "description": "Map of voter UIDs to vote direction" },
+        "timestamp": { "type": "number", "description": "When suggested" },
+        "status": { "type": "string", "enum": ["pending", "approved"], "description": "Approval status" }
+      },
+      "required": ["title", "category", "suggestedBy", "suggestedByName", "votes", "timestamp", "status"]
     }
   },
   "firestore": {
@@ -97,6 +166,10 @@
     "/direct_messages/{messageId}": {
       "schema": "DirectMessage",
       "description": "Direct messages collection"
+    },
+    "/game_suggestions/{suggestionId}": {
+      "schema": "GameSuggestion",
+      "description": "Community game suggestions collection"
     }
   }
 }
