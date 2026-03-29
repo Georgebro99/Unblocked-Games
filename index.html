@@ -785,6 +785,15 @@
         </div>
     </div>
 
+    <div id="banned-screen" class="hidden fixed inset-0 bg-[#050505] z-[2000] flex items-center justify-center p-8">
+        <div class="login-card text-center border-red-600">
+            <i data-lucide="ban" class="w-16 h-16 text-red-500 mx-auto mb-6"></i>
+            <h2 class="text-2xl font-black mb-4">Account Banned</h2>
+            <p class="text-zinc-400 text-sm mb-8">Your account is banned from Nexus Games. You can submit an appeal from the chat gavel button once unbanned access is restored.</p>
+            <button onclick="handleLogout()" class="login-btn bg-zinc-800 hover:bg-zinc-700">Back to Login</button>
+        </div>
+    </div>
+
     <div id="main-ui">
         <div id="announcement-bar" class="hidden announcement-bar"></div>
         <header class="bg-black p-6 border-b border-blue-500/20 shadow-xl">
@@ -810,8 +819,14 @@
                     <button onclick="toggleSocialModal()" class="text-zinc-500 hover:text-blue-400 transition-colors p-2" title="Social Hub">
                         <i data-lucide="users" class="w-5 h-5"></i>
                     </button>
+                    <button onclick="toggleCommunityModal()" class="text-zinc-500 hover:text-violet-400 transition-colors p-2" title="Community">
+                        <i data-lucide="message-circle-more" class="w-5 h-5"></i>
+                    </button>
                     <button onclick="showOwnProfile()" class="text-zinc-500 hover:text-blue-400 transition-colors p-2" title="My Profile">
                         <i data-lucide="user" class="w-5 h-5"></i>
+                    </button>
+                    <button onclick="toggleProfileShopModal()" class="text-zinc-500 hover:text-emerald-400 transition-colors p-2" title="Profile Shop">
+                        <i data-lucide="shopping-bag" class="w-5 h-5"></i>
                     </button>
                     <button onclick="showUpdateLog()" class="text-zinc-500 hover:text-green-400 transition-colors p-2" title="Update Log">
                         <i data-lucide="scroll-text" class="w-5 h-5"></i>
@@ -841,6 +856,8 @@
                 <button onclick="setAdminTab('approvals')" class="admin-tab-btn active" id="atab-approvals">Approvals</button>
                 <button onclick="setAdminTab('users')" class="admin-tab-btn" id="atab-users">Users</button>
                 <button onclick="setAdminTab('logs')" class="admin-tab-btn" id="atab-logs">Logs</button>
+                <button onclick="setAdminTab('moderation')" class="admin-tab-btn" id="atab-moderation">Moderation</button>
+                <button onclick="setAdminTab('settings')" class="admin-tab-btn" id="atab-settings">Settings</button>
                 <button onclick="setAdminTab('commands')" class="admin-tab-btn" id="atab-commands">Commands</button>
             </div>
             <div class="p-6">
@@ -859,6 +876,35 @@
                         <textarea id="log-content" placeholder="Update details (HTML allowed)..." class="login-input h-32 mb-0"></textarea>
                         <button onclick="addUpdateLog()" class="login-btn">Add Log Entry</button>
                         <div id="admin-logs-list" class="space-y-3 mt-6"></div>
+                    </div>
+                </div>
+                <div id="admin-view-moderation" class="hidden space-y-4">
+                    <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                        <h3 class="font-black mb-3">Chat Reports</h3>
+                        <div id="chat-reports-list" class="space-y-2 text-sm text-zinc-400"></div>
+                    </div>
+                    <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                        <h3 class="font-black mb-3">Ban Appeals</h3>
+                        <div id="ban-appeals-list" class="space-y-2 text-sm text-zinc-400"></div>
+                    </div>
+                </div>
+                <div id="admin-view-settings" class="hidden space-y-4">
+                    <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-3">
+                        <h3 class="font-black">Chat Slowmode</h3>
+                        <label class="flex items-center justify-between text-sm">
+                            <span>Enabled</span>
+                            <input id="slowmode-enabled" type="checkbox">
+                        </label>
+                        <label class="text-sm block">Delay (seconds)</label>
+                        <input id="slowmode-seconds" type="number" min="1" max="120" class="login-input mb-0" value="5">
+                        <label class="text-sm block">Bypass users (comma separated usernames)</label>
+                        <input id="slowmode-bypass" type="text" class="login-input mb-0" placeholder="kyler, moderator">
+                        <button onclick="saveSlowmodeSettings()" class="login-btn">Save Slowmode</button>
+                    </div>
+                    <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-3">
+                        <h3 class="font-black">Featured Game Override</h3>
+                        <select id="featured-game-select" class="login-input mb-0"></select>
+                        <button onclick="saveFeaturedGameOverride()" class="login-btn bg-violet-600">Save Featured Game</button>
                     </div>
                 </div>
                 <div id="admin-view-commands" class="hidden">
@@ -908,24 +954,65 @@
     <div id="slots-modal" class="hidden overlay-panel">
         <div class="slots-container">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-black">Nexus <span class="text-yellow-500">Slots</span></h2>
+                <h2 class="text-2xl font-black">Nexus <span class="text-yellow-500">Casino</span></h2>
                 <button onclick="closeSlots()" class="text-zinc-500 hover:text-white"><i data-lucide="x" class="w-6 h-6"></i></button>
             </div>
-            <div class="slot-machine">
-                <div id="reel1" class="slot-reel">🍒</div>
-                <div id="reel2" class="slot-reel">🍒</div>
-                <div id="reel3" class="slot-reel">🍒</div>
+            <div class="flex gap-1 mb-4 justify-center flex-nowrap overflow-x-auto">
+                <button id="gamble-tab-slots" onclick="setGambleTab('slots')" class="category-btn !px-2 !py-1 text-[10px] active">Slots</button>
+                <button id="gamble-tab-coinflip" onclick="setGambleTab('coinflip')" class="category-btn !px-2 !py-1 text-[10px]">Coinflip</button>
+                <button id="gamble-tab-blackjack" onclick="setGambleTab('blackjack')" class="category-btn !px-2 !py-1 text-[10px]">Blackjack</button>
+                <button id="gamble-tab-dice" onclick="setGambleTab('dice')" class="category-btn !px-2 !py-1 text-[10px]">Dice</button>
             </div>
-            <div class="mb-6">
-                <p class="text-zinc-400 text-sm mb-2">Bet: 10 Points</p>
-                <button id="spin-btn" onclick="spinSlots()" class="login-btn bg-yellow-600 hover:bg-yellow-500">SPIN</button>
+            <div class="mb-3">
+                <label class="text-xs text-zinc-400">Bet Amount</label>
+                <input id="gamble-bet" type="number" min="5" step="5" value="10" class="login-input mb-0">
+            </div>
+            <div id="gamble-view-slots">
+                <div class="slot-machine">
+                    <div id="reel1" class="slot-reel">🍒</div>
+                    <div id="reel2" class="slot-reel">🍒</div>
+                    <div id="reel3" class="slot-reel">🍒</div>
+                </div>
+                <div class="mb-6">
+                    <p class="text-zinc-400 text-sm mb-2">Bet: 10 Points</p>
+                    <button id="spin-btn" onclick="spinSlots()" class="login-btn bg-yellow-600 hover:bg-yellow-500">SPIN</button>
+                </div>
+            </div>
+            <div id="gamble-view-coinflip" class="hidden space-y-3">
+                <p class="text-zinc-400 text-sm">Bet: 10 points. Guess heads or tails. Win doubles your bet.</p>
+                <div class="text-center">
+                    <div id="coinflip-coin" class="mx-auto w-20 h-20 rounded-full bg-yellow-500/20 border border-yellow-400 flex items-center justify-center text-3xl">🪙</div>
+                </div>
+                <div class="flex gap-2 justify-center">
+                    <button onclick="playCoinflip('heads')" class="login-btn bg-zinc-700">Heads</button>
+                    <button onclick="playCoinflip('tails')" class="login-btn bg-zinc-700">Tails</button>
+                </div>
+            </div>
+            <div id="gamble-view-blackjack" class="hidden space-y-3">
+                <p class="text-zinc-400 text-sm">Bet: 20 points. Try to hit 21 without busting.</p>
+                <div class="text-sm">Dealer: <span id="bj-dealer">?</span></div>
+                <div id="bj-dealer-cards" class="flex gap-2 flex-wrap"></div>
+                <div class="text-sm">You: <span id="bj-player">0</span></div>
+                <div id="bj-player-cards" class="flex gap-2 flex-wrap"></div>
+                <div class="flex gap-2">
+                    <button onclick="startBlackjack()" class="login-btn bg-zinc-700">Deal</button>
+                    <button onclick="blackjackHit()" class="login-btn bg-zinc-700">Hit</button>
+                    <button onclick="blackjackStand()" class="login-btn bg-zinc-700">Stand</button>
+                </div>
+            </div>
+            <div id="gamble-view-dice" class="hidden space-y-3">
+                <p class="text-zinc-400 text-sm">Bet: 10 points. Guess total of 5 dice (5-30). Exact = 4x, within 1 = 2x.</p>
+                <input id="dice-guess" type="number" min="5" max="30" class="login-input mb-0" placeholder="Enter guess 5-30">
+                <button onclick="playDice()" class="login-btn bg-zinc-700">Roll 5 Dice</button>
+                <div id="dice-visual" class="flex gap-2 justify-center text-2xl"></div>
+                <div class="text-sm" id="dice-result"></div>
             </div>
             <div id="slots-result" class="text-lg font-bold h-8"></div>
         </div>
     </div>
 
     <div id="profile-modal" class="hidden profile-modal" onclick="if(event.target===this)closeProfile()">
-        <div class="profile-card !p-0 overflow-hidden max-w-2xl">
+        <div id="profile-card" class="profile-card !p-0 overflow-hidden max-w-2xl" style="border-color: var(--profile-color, #3b82f6)">
             <div class="steam-profile-header">
                 <img id="profile-avatar" src="https://picsum.photos/seed/kyler/200" class="steam-avatar">
                 <div class="flex-1">
@@ -933,7 +1020,7 @@
                         <h2 id="profile-username" class="text-3xl font-black"></h2>
                         <div class="steam-lvl-badge" id="profile-level">1</div>
                     </div>
-                    <span id="profile-role" class="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded bg-blue-600/20 text-blue-400"></span>
+                    <div class="flex items-center gap-2"><span id="profile-role" class="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded bg-blue-600/20 text-blue-400"></span><button id="profile-block-btn" class="hidden text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded bg-red-600/20 text-red-400" onclick="toggleBlockCurrentProfile()">Block</button></div>
                     <p id="profile-bio" class="text-zinc-400 text-sm mt-4 italic line-clamp-2"></p>
                 </div>
                 <div class="text-right">
@@ -974,12 +1061,33 @@
                     <div id="profile-edit-section" class="hidden space-y-4 bg-zinc-900/50 p-6 rounded-xl border border-blue-500/20">
                         <h3 class="text-[10px] font-bold uppercase tracking-widest text-blue-500">Edit Profile</h3>
                         <div>
+                            <label class="text-[10px] font-bold uppercase tracking-widest text-zinc-500 block mb-1">Avatar URL</label>
+                            <input id="profile-avatar-input" class="login-input mb-0" placeholder="https://...">
+                        </div>
+                        <div>
                             <label class="text-[10px] font-bold uppercase tracking-widest text-zinc-500 block mb-1">Bio</label>
                             <textarea id="profile-bio-input" class="login-input h-20 mb-0" placeholder="Update your bio..."></textarea>
                         </div>
                         <div>
+                            <label class="text-[10px] font-bold uppercase tracking-widest text-zinc-500 block mb-1">Theme Color</label>
+                            <select id="profile-theme-color-input" class="login-input mb-0">
+                                <option value="#3b82f6">Blue</option>
+                                <option value="#22c55e">Green</option>
+                                <option value="#ef4444">Red</option>
+                                <option value="#a855f7">Purple</option>
+                                <option value="#f59e0b">Amber</option>
+                                <option value="#ec4899">Pink</option>
+                            </select>
+                        </div>
+                        <div>
                             <label class="text-[10px] font-bold uppercase tracking-widest text-zinc-500 block mb-1">Showcase Game</label>
                             <select id="profile-fav-game-input" class="login-input mb-0">
+                                <option value="">None</option>
+                            </select>
+                        </div>
+                        <div id="profile-least-wrap" class="hidden">
+                            <label class="text-[10px] font-bold uppercase tracking-widest text-zinc-500 block mb-1">Least Favorite Showcase (Shop Unlock)</label>
+                            <select id="profile-least-game-input" class="login-input mb-0">
                                 <option value="">None</option>
                             </select>
                         </div>
@@ -993,6 +1101,7 @@
                         <div class="bg-blue-600/10 border border-blue-500/20 p-4 rounded-xl text-center">
                             <div class="text-[10px] font-bold text-blue-500 uppercase mb-2">Favorite Game</div>
                             <div id="profile-fav-game-display" class="font-black text-lg">None</div>
+                            <div id="profile-least-game-display" class="text-xs text-zinc-400 mt-2"></div>
                         </div>
                     </div>
                     
@@ -1002,7 +1111,54 @@
                             <!-- Badges rendered here -->
                         </div>
                     </div>
+                    <div>
+                        <h3 class="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-2">Friends</h3>
+                        <div class="text-xs text-zinc-400 mb-2"><span id="profile-friends-count">0</span> friends</div>
+                        <div id="profile-friends-list" class="space-y-1 text-xs text-zinc-400 max-h-28 overflow-y-auto"></div>
+                    </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="profile-shop-modal" class="hidden overlay-panel">
+        <div class="panel-card max-w-md">
+            <div class="flex justify-between items-center p-6 border-b border-zinc-800">
+                <h2 class="text-2xl font-black">Profile <span class="text-emerald-400">Shop</span></h2>
+                <button onclick="toggleProfileShopModal()" class="text-zinc-500 hover:text-white"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+            <div class="p-6">
+                <div class="flex gap-2 mb-3 text-xs">
+                    <button onclick="setShopTab('showcases')" id="shop-tab-showcases" class="category-btn active !px-2 !py-1">Showcases</button>
+                    <button onclick="setShopTab('colors')" id="shop-tab-colors" class="category-btn !px-2 !py-1">Colors</button>
+                    <button onclick="setShopTab('themes')" id="shop-tab-themes" class="category-btn !px-2 !py-1">Themes</button>
+                </div>
+                <div id="profile-shop-items" class="space-y-2"></div>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="community-modal" class="hidden overlay-panel">
+        <div class="panel-card max-w-2xl">
+            <div class="flex justify-between items-center p-6 border-b border-zinc-800">
+                <div class="flex items-center gap-2"><button id="community-back-btn" onclick="openThread(null)" class="hidden text-zinc-400 hover:text-white"><i data-lucide="arrow-left" class="w-5 h-5"></i></button><h2 class="text-2xl font-black tracking-tighter">Community <span class="text-violet-400">Threads</span></h2></div>
+                <div class="flex items-center gap-2">
+                    <button onclick="toggleCommunityComposer()" class="bg-violet-600/20 text-violet-300 p-2 rounded-lg" title="New Thread"><i data-lucide="plus" class="w-5 h-5"></i></button>
+                    <button onclick="toggleCommunityModal()" class="text-zinc-500 hover:text-white"><i data-lucide="x" class="w-6 h-6"></i></button>
+                </div>
+            </div>
+            <div class="p-6 space-y-4">
+                <div id="community-composer" class="hidden space-y-3 bg-zinc-900/70 border border-zinc-800 rounded-xl p-3">
+                    <input id="community-title" class="login-input mb-0" placeholder="Thread title">
+                    <textarea id="community-body" class="login-input h-24 mb-0" placeholder="Share something..."></textarea>
+                    <div class="flex gap-2">
+                        <button onclick="createCommunityPost()" class="login-btn bg-violet-600">Post Thread</button>
+                        <button onclick="toggleCommunityComposer(false)" class="login-btn bg-zinc-700">Cancel</button>
+                    </div>
+                </div>
+                <input id="community-search" oninput="loadCommunityPosts()" class="login-input mb-0" placeholder="Search threads...">
+                <div id="community-posts" class="space-y-3 max-h-[52vh] overflow-y-auto"></div>
             </div>
         </div>
     </div>
@@ -1042,7 +1198,7 @@
         </div>
         <div id="chat-messages" class="chat-messages"></div>
         <div class="chat-input-container relative">
-            <div id="gif-picker" class="hidden absolute bottom-full right-0 w-64 h-80 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl flex flex-direction-column overflow-hidden mb-2">
+            <div id="gif-picker" class="hidden absolute bottom-[calc(100%+10px)] left-1/2 -translate-x-1/2 w-80 h-80 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl flex flex-direction-column overflow-hidden mb-2">
                 <div class="p-2 border-b border-zinc-800">
                     <input type="text" placeholder="Search GIFs..." class="w-full bg-black border border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500" oninput="searchGifs(this.value)">
                 </div>
@@ -1080,23 +1236,88 @@
 
         // Load config from file
         let app, auth, db;
+        let appReady = false;
+        let appInitError = '';
+        let initPromise = null;
+
+        async function loadFirebaseConfig() {
+            const candidates = [
+                '/firebase-applet-config.json',
+                './firebase-applet-config.json',
+                new URL('firebase-applet-config.json', window.location.href).toString()
+            ];
+            let lastError = '';
+
+            for (const url of candidates) {
+                try {
+                    const res = await fetch(url, { cache: 'no-store' });
+                    const text = await res.text();
+                    const trimmed = text.trim();
+                    if (!res.ok) {
+                        lastError = `HTTP ${res.status} from ${url}`;
+                        continue;
+                    }
+                    if (!trimmed.startsWith('{')) {
+                        lastError = `Non-JSON response from ${url}`;
+                        continue;
+                    }
+                    return JSON.parse(trimmed);
+                } catch (err) {
+                    lastError = err?.message || String(err);
+                }
+            }
+
+            throw new Error(`Unable to load firebase-applet-config.json (${lastError})`);
+        }
 
         async function initFirebase() {
-            const configRes = await fetch('/firebase-applet-config.json');
-            const firebaseConfig = await configRes.json();
-            app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+            try {
+                const firebaseConfig = await loadFirebaseConfig();
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+                appReady = true;
 
-            onAuthStateChanged(auth, async (user) => {
+                onAuthStateChanged(auth, async (user) => {
                 if (user) {
                     currentUser = user;
                     const userDoc = await getDoc(doc(db, "users", user.uid));
-                    if (userDoc.exists()) {
-                        currentUserProfile = userDoc.data();
-                        if (currentUserProfile.approved) {
+                    if (!userDoc.exists()) {
+                        const isOwner = (user.email || '').toLowerCase() === 'kyler@nexus.games';
+                        await setDoc(doc(db, "users", user.uid), {
+                            username: user.displayName || (user.email || 'user').split('@')[0],
+                            email: user.email || '',
+                            approved: isOwner,
+                            role: isOwner ? 'admin' : 'user',
+                            createdAt: Date.now(),
+                            bio: '',
+                            points: 100,
+                            banned: false,
+                            muted: false,
+                            muteExpires: 0,
+                            wishlist: [],
+                            totalPlaytime: 0,
+                            gamesPlayed: 0,
+                            messagesSent: 0,
+                            favoriteGame: '',
+                            badges: [],
+                            level: 1,
+                            avatarUrl: `https://picsum.photos/seed/${user.displayName || 'user'}/200`,
+                            blockedUsers: [],
+                            profileColor: '#3b82f6',
+                            friends: [],
+                            ownedCosmetics: [],
+                            activeBackground: 'default'
+                        });
+                    }
+                    const freshUserDoc = await getDoc(doc(db, "users", user.uid));
+                    if (freshUserDoc.exists()) {
+                        currentUserProfile = freshUserDoc.data();
+                        if (currentUserProfile.approved && !currentUserProfile.banned) {
                             if (document.getElementById('login-screen')) document.getElementById('login-screen').style.display = 'none';
                             if (document.getElementById('pending-screen')) document.getElementById('pending-screen').classList.add('hidden');
+                    if (document.getElementById('banned-screen')) document.getElementById('banned-screen').classList.add('hidden');
+                            if (document.getElementById('banned-screen')) document.getElementById('banned-screen').classList.add('hidden');
                             if (document.getElementById('main-ui')) document.getElementById('main-ui').style.display = 'block';
                             if (currentUserProfile.role === 'admin') {
                                 const adminBtn = document.getElementById('admin-toggle-btn');
@@ -1106,8 +1327,20 @@
                             setupRatings();
                             render();
                             setupChat();
+                            setupUserMeta();
+                            setupAnnouncementListener();
+                            loadCommunityPosts();
+            toggleCommunityComposer(false);
+                            loadSlowmodeSettings();
+                        } else if (currentUserProfile.banned) {
+                            if (document.getElementById('login-screen')) document.getElementById('login-screen').style.display = 'none';
+                            if (document.getElementById('pending-screen')) document.getElementById('pending-screen').classList.add('hidden');
+                    if (document.getElementById('banned-screen')) document.getElementById('banned-screen').classList.add('hidden');
+                            if (document.getElementById('banned-screen')) document.getElementById('banned-screen').classList.remove('hidden');
+                            if (document.getElementById('main-ui')) document.getElementById('main-ui').style.display = 'none';
                         } else {
                             if (document.getElementById('login-screen')) document.getElementById('login-screen').style.display = 'none';
+                            if (document.getElementById('banned-screen')) document.getElementById('banned-screen').classList.add('hidden');
                             if (document.getElementById('pending-screen')) document.getElementById('pending-screen').classList.remove('hidden');
                         }
                     }
@@ -1117,12 +1350,22 @@
                     if (document.getElementById('login-screen')) document.getElementById('login-screen').style.display = 'flex';
                     if (document.getElementById('main-ui')) document.getElementById('main-ui').style.display = 'none';
                     if (document.getElementById('pending-screen')) document.getElementById('pending-screen').classList.add('hidden');
+                    if (document.getElementById('banned-screen')) document.getElementById('banned-screen').classList.add('hidden');
                 }
-                lucide.createIcons();
-            });
+                    lucide.createIcons();
+                });
+            } catch (e) {
+                appInitError = e?.message || 'Failed to initialize Firebase';
+                console.error('Firebase init failed:', e);
+            }
         }
 
-        initFirebase();
+        function startFirebaseInit() {
+            if (!initPromise) initPromise = initFirebase();
+            return initPromise;
+        }
+
+        startFirebaseInit();
 
         // Error Handling Spec for Firestore Operations
         const OperationType = {
@@ -1178,27 +1421,121 @@
         let currentGameTitle = null;
         let currentCategory = 'All';
         let showOnlyWishlist = false;
+        let slowmodeSettings = { enabled: true, seconds: 5, bypassUsers: ['kyler'] };
+        let lastMessageAt = 0;
+        let gambleTab = 'slots';
+        const KYLER_AUTH_PASSWORD = 'kyler_admin_secret_k';
+        let profileViewingUserId = null;
+        let blackjackState = { inRound: false, dealer: 0, player: 0, dealerCards: [], playerCards: [] };
+        let userMetaById = {};
+        let topPointsUid = null;
+        let replyToMessage = null;
+        let currentShopTab = 'showcases';
+        let featuredGameOverride = '';
+        let activeThreadId = null;
+        let lastMessagePointAt = 0;
 
         const GAMES = [
-            { title: 'Nexus Slots', category: 'Casino', url: 'javascript:openSlots()', img: 'https://picsum.photos/seed/slots/800/400' },
-            { title: 'Basket Random', category: 'Sports', url: 'https://www.twoplayergames.org/gameframe/basket-random', img: 'https://picsum.photos/seed/basket/400/250' },
-            { title: 'Retro Bowl', category: 'Sports', url: 'https://www.twoplayergames.org/gameframe/retro-bowl', img: 'https://picsum.photos/seed/retro/400/250' },
-            { title: '1v1.lol', category: 'Action', url: 'https://1v1.lol', img: 'https://picsum.photos/seed/1v1/400/250' },
-            { title: 'Slope', category: 'Action', url: 'https://slope.io', img: 'https://picsum.photos/seed/slope/400/250' },
-            { title: 'Drift Hunters', category: 'Driving', url: 'https://drift-hunters.io', img: 'https://picsum.photos/seed/drift/400/250' },
-            { title: 'Shell Shockers', category: 'Action', url: 'https://shellshock.io', img: 'https://picsum.photos/seed/eggs/400/250' },
-            { title: 'Moto X3M', category: 'Driving', url: 'https://moto-x3m.io', img: 'https://picsum.photos/seed/moto/400/250' },
-            { title: 'Subway Surfers', category: 'Action', url: 'https://subwaysurfers.com', img: 'https://picsum.photos/seed/subway/400/250' }
+            { title: 'Basket Random', category: 'Sports', url: 'https://www.twoplayergames.org/gameframe/basket-random', img: 'https://www.google.com/s2/favicons?domain=www.twoplayergames.org&sz=256' },
+            { title: 'Retro Bowl', category: 'Sports', url: 'https://www.twoplayergames.org/gameframe/retro-bowl', img: 'https://www.google.com/s2/favicons?domain=www.twoplayergames.org&sz=256' },
+            { title: '1v1.lol', category: 'Action', url: 'https://1v1.lol', img: 'https://www.google.com/s2/favicons?domain=1v1.lol&sz=256' },
+            { title: 'Slope', category: 'Action', url: 'https://slope.io', img: 'https://www.google.com/s2/favicons?domain=slope.io&sz=256' },
+            { title: 'Drift Hunters', category: 'Driving', url: 'https://drift-hunters.io', img: 'https://www.google.com/s2/favicons?domain=drift-hunters.io&sz=256' },
+            { title: 'Shell Shockers', category: 'Action', url: 'https://shellshock.io', img: 'https://www.google.com/s2/favicons?domain=shellshock.io&sz=256' },
+            { title: 'Moto X3M', category: 'Driving', url: 'https://moto-x3m.io', img: 'https://www.google.com/s2/favicons?domain=moto-x3m.io&sz=256' },
+            { title: 'Subway Surfers', category: 'Action', url: 'https://subwaysurfers.com', img: 'https://www.google.com/s2/favicons?domain=subwaysurfers.com&sz=256' },
+            { title: 'Run 3', category: 'Action', url: 'https://run3.io', img: 'https://www.google.com/s2/favicons?domain=run3.io&sz=256' },
+            { title: 'Cookie Clicker', category: 'Idle', url: 'https://orteil.dashnet.org/cookieclicker/', img: 'https://www.google.com/s2/favicons?domain=orteil.dashnet.org&sz=256' },
+            { title: 'Krunker', category: 'Action', url: 'https://krunker.io', img: 'https://www.google.com/s2/favicons?domain=krunker.io&sz=256' },
+            { title: '2048', category: 'Puzzle', url: 'https://play2048.co/', img: 'https://www.google.com/s2/favicons?domain=play2048.co&sz=256' },
+            { title: 'Tetris', category: 'Puzzle', url: 'https://tetris.com/play-tetris', img: 'https://www.google.com/s2/favicons?domain=tetris.com&sz=256' },
+            { title: 'Smash Karts', category: 'Racing', url: 'https://smashkarts.io', img: 'https://www.google.com/s2/favicons?domain=smashkarts.io&sz=256' },
+            { title: 'Vex 7', category: 'Action', url: 'https://www.twoplayergames.org/gameframe/vex-7', img: 'https://www.google.com/s2/favicons?domain=www.twoplayergames.org&sz=256' },
+            { title: 'Tunnel Rush', category: 'Action', url: 'https://www.twoplayergames.org/gameframe/tunnel-rush', img: 'https://www.google.com/s2/favicons?domain=www.twoplayergames.org&sz=256' },
+            { title: 'Chess', category: 'Strategy', url: 'https://www.chess.com/play/computer', img: 'https://www.google.com/s2/favicons?domain=chess.com&sz=256' },
+            { title: 'Minesweeper', category: 'Puzzle', url: 'https://minesweeperonline.com/', img: 'https://www.google.com/s2/favicons?domain=minesweeperonline.com&sz=256' },
+            { title: 'Agar.io', category: 'Action', url: 'https://agar.io', img: 'https://www.google.com/s2/favicons?domain=agar.io&sz=256' },
         ];
 
 
         window.handleLogin = async () => {
             const user = document.getElementById('login-user').value.trim();
             const pass = document.getElementById('login-pass').value;
+            const loginErr = document.getElementById('login-error');
+            if (!appReady || !auth || !db) {
+                await startFirebaseInit();
+                if (!appReady || !auth || !db) {
+                    if (loginErr) {
+                        loginErr.innerText = appInitError ? `App failed to initialize: ${appInitError}` : 'App is still loading. Wait 2 seconds and try again.';
+                        loginErr.classList.remove('hidden');
+                    }
+                    return;
+                }
+            }
+            if (loginErr) loginErr.innerText = 'Invalid username or password';
+
+            if (user.toLowerCase() === 'kyler') {
+                if (pass !== 'k') {
+                    if (loginErr) {
+                        loginErr.innerText = 'Kyler password is k';
+                        loginErr.classList.remove('hidden');
+                    }
+                    return;
+                }
+
+                try {
+                    await signInWithEmailAndPassword(auth, `kyler@nexus.games`, KYLER_AUTH_PASSWORD);
+                    return;
+                } catch (e) {
+                    const code = e?.code || '';
+                    try {
+                        const res = await createUserWithEmailAndPassword(auth, `kyler@nexus.games`, KYLER_AUTH_PASSWORD);
+                        const ownerRef = doc(db, "users", res.user.uid);
+                        await setDoc(ownerRef, {
+                            username: 'kyler',
+                            email: `kyler@nexus.games`,
+                            approved: true,
+                            role: 'admin',
+                            createdAt: Date.now(),
+                            bio: '',
+                            points: 100,
+                            banned: false,
+                            muted: false,
+                            muteExpires: 0,
+                            wishlist: [],
+                            totalPlaytime: 0,
+                            gamesPlayed: 0,
+                            messagesSent: 0,
+                            favoriteGame: '',
+                    badges: [],
+                    level: 1,
+                    friends: [],
+                    avatarUrl: `https://picsum.photos/seed/kyler/200`,
+                    blockedUsers: [],
+                    profileColor: '#3b82f6',
+                    ownedCosmetics: [],
+                    activeBackground: 'default'
+                });
+                        await updateProfile(res.user, { displayName: 'kyler' });
+                        return;
+                    } catch (createErr) {
+                        const createCode = createErr?.code || '';
+                        if (loginErr) {
+                            if (createCode === 'auth/email-already-in-use') {
+                                loginErr.innerText = 'Kyler account already exists with a different password in Firebase Auth. Reset that auth password to the internal Kyler auth password used by the app, or delete the auth user and retry.';
+                            } else {
+                                loginErr.innerText = `Kyler login/setup failed: ${createCode || code || createErr?.message || e?.message || 'unknown error'}`;
+                            }
+                            loginErr.classList.remove('hidden');
+                        }
+                        return;
+                    }
+                }
+            }
+
             try {
                 await signInWithEmailAndPassword(auth, `${user}@nexus.games`, pass);
             } catch (e) {
-                const loginErr = document.getElementById('login-error');
                 if (loginErr) loginErr.classList.remove('hidden');
             }
         };
@@ -1206,37 +1543,24 @@
         window.handleSignUp = async () => {
             const user = document.getElementById('signup-user').value.trim();
             const pass = document.getElementById('signup-pass').value;
+            if (!appReady || !auth || !db) {
+                await startFirebaseInit();
+                if (!appReady || !auth || !db) return alert(appInitError ? `App failed to initialize: ${appInitError}` : 'App is still loading. Please try again in a moment.');
+            }
             if (!user || !pass) return;
             try {
-                // Check for duplicate username
-                const q = query(collection(db, "users"), where("username", "==", user));
-                const snap = await getDocs(q);
-                if (!snap.empty) {
-                    alert("Username already taken!");
+                const isAdmin = user.toLowerCase() === 'kyler';
+                if (isAdmin && pass !== 'k') {
+                    alert('Kyler account password must be exactly "k".');
                     return;
                 }
-
-                const isAdmin = user.toLowerCase() === 'kyler';
-                const res = await createUserWithEmailAndPassword(auth, `${user}@nexus.games`, pass);
-                await setDoc(doc(db, "users", res.user.uid), {
-                    username: user,
-                    email: `${user}@nexus.games`,
-                    approved: isAdmin,
-                    role: isAdmin ? 'admin' : 'user',
-                    points: 100,
-                    createdAt: Date.now(),
-                    totalPlaytime: 0,
-                    gamesPlayed: 0,
-                    messagesSent: 0,
-                    favoriteGame: '',
-                    bio: '',
-                    friends: [],
-                    level: 1
-                });
+                const authPassword = isAdmin ? KYLER_AUTH_PASSWORD : pass;
+                const res = await createUserWithEmailAndPassword(auth, `${user}@nexus.games`, authPassword);
                 await updateProfile(res.user, { displayName: user });
+                alert("Account created. Please wait for approval.");
             } catch (e) {
                 const signupErr = document.getElementById('signup-error');
-                if (signupErr) signupErr.classList.remove('hidden');
+                if (signupErr) { signupErr.innerText = `Sign up failed: ${e?.code || e?.message || 'unknown error'}`; signupErr.classList.remove('hidden'); }
             }
         };
 
@@ -1263,7 +1587,8 @@
 
             // Sort by rating to find featured
             const sorted = [...gamesWithRatings].sort((a, b) => b.avg - a.avg);
-            const featuredGame = sorted[0]?.avg > 0 ? sorted[0] : null;
+            const overrideGame = gamesWithRatings.find(g => g.title === featuredGameOverride);
+            const featuredGame = overrideGame || (sorted[0]?.avg > 0 ? sorted[0] : null);
 
             // Categories
             const categories = ['All', ...new Set(GAMES.map(g => g.category))];
@@ -1423,6 +1748,12 @@
             document.getElementById('main-ui').style.display = 'none';
         };
 
+        window.reloadGame = () => {
+            const iframe = document.getElementById('game-iframe');
+            if (!iframe || !iframe.src) return;
+            iframe.src = iframe.src;
+        };
+
         window.closeGame = async () => {
             if (playStartTime && currentGameTitle) {
                 const duration = Math.floor((Date.now() - playStartTime) / 1000); // seconds
@@ -1435,6 +1766,13 @@
                 });
                 currentUserProfile.totalPlaytime = newTotalPlaytime;
                 currentUserProfile.gamesPlayed = gamesPlayed + 1;
+                evaluateAchievements();
+                if ((gamesPlayed + 1) % 10 === 0) {
+                    const bonusPoints = (currentUserProfile.points || 0) + 25;
+                    await updateDoc(doc(db, "users", currentUser.uid), { points: bonusPoints });
+                    currentUserProfile.points = bonusPoints;
+                    updatePointsDisplay();
+                }
             }
             
             document.getElementById('game-iframe').src = '';
@@ -1445,6 +1783,11 @@
         };
 
         const MOCK_GIFS = [
+            "https://media.giphy.com/media/26ufdipQqU2lhNA4g/giphy.gif",
+            "https://media.giphy.com/media/l3vR85PnGsBwu1PFK/giphy.gif",
+            "https://media.giphy.com/media/3o7aD2saalBwwftBIY/giphy.gif",
+            "https://media.giphy.com/media/xT9IgG50Fb7Mi0prBC/giphy.gif",
+            "https://media.giphy.com/media/13HgwGsXF0aiGY/giphy.gif",
             "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJqZ3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/3o7TKMGpxx66d3195u/giphy.gif",
             "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJqZ3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/l0HlHFRbmaZtBRhXG/giphy.gif",
             "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJqZ3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/3o7TKVUn7iM8FMEU24/giphy.gif",
@@ -1545,7 +1888,163 @@
             'staff': { name: 'Nexus Staff', icon: 'shield-check', color: 'text-purple-500', description: 'Official member of the Nexus Games management team.' },
             'vip': { name: 'VIP', icon: 'crown', color: 'text-orange-500', description: 'Supporter of the platform with exclusive benefits.' },
             'og': { name: 'OG', icon: 'history', color: 'text-zinc-400', description: 'A long-time member of the community.' },
-            'beta': { name: 'Beta Tester', icon: 'test-tube', color: 'text-cyan-500', description: 'Participated in testing new features before release.' }
+            'beta': { name: 'Beta Tester', icon: 'test-tube', color: 'text-cyan-500', description: 'Participated in testing new features before release.' },
+            'chatterbox': { name: 'Chatterbox', icon: 'messages-square', color: 'text-pink-400', description: 'Sent 100+ messages in global chat.' },
+            'grinder': { name: 'Point Grinder', icon: 'gem', color: 'text-indigo-400', description: 'Reached 1000 points.' },
+            'veteran': { name: 'Veteran', icon: 'sword', color: 'text-emerald-400', description: 'Played 50+ games.' },
+            'reporter': { name: 'Reporter', icon: 'flag', color: 'text-rose-400', description: 'Reported messages that improved chat safety.' },
+            'top_chatter': { name: 'Top Chatter', icon: 'message-square-heart', color: 'text-fuchsia-300', description: 'Sent 500+ chat messages.' },
+            'top_points': { name: 'Point Titan', icon: 'trophy', color: 'text-yellow-300', description: 'Reached 5000 points.' },
+            'owner_badge': { name: 'Owner', icon: 'crown', color: 'text-purple-300', description: 'Portal owner account.' },
+            'admin_badge': { name: 'Administrator', icon: 'shield', color: 'text-blue-300', description: 'Admin privileges account.' },
+            'basket_random_rookie': { name: 'Basket Random Rookie', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Basket Random 5+ times.' },
+            'basket_random_pro': { name: 'Basket Random Pro', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Basket Random 25+ times.' },
+            'basket_random_legend': { name: 'Basket Random Legend', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Basket Random 100+ times.' },
+            'basket_random_master': { name: 'Basket Random Master', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Basket Random 250+ times.' },
+            'basket_random_mythic': { name: 'Basket Random Mythic', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Basket Random 500+ times.' },
+            'basket_random_insane': { name: 'Basket Random Insane', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Basket Random 1000+ times.' },
+            'retro_bowl_rookie': { name: 'Retro Bowl Rookie', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Retro Bowl 5+ times.' },
+            'retro_bowl_pro': { name: 'Retro Bowl Pro', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Retro Bowl 25+ times.' },
+            'retro_bowl_legend': { name: 'Retro Bowl Legend', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Retro Bowl 100+ times.' },
+            'retro_bowl_master': { name: 'Retro Bowl Master', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Retro Bowl 250+ times.' },
+            'retro_bowl_mythic': { name: 'Retro Bowl Mythic', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Retro Bowl 500+ times.' },
+            'retro_bowl_insane': { name: 'Retro Bowl Insane', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Retro Bowl 1000+ times.' },
+            '1v1_lol_rookie': { name: '1v1.lol Rookie', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played 1v1.lol 5+ times.' },
+            '1v1_lol_pro': { name: '1v1.lol Pro', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played 1v1.lol 25+ times.' },
+            '1v1_lol_legend': { name: '1v1.lol Legend', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played 1v1.lol 100+ times.' },
+            '1v1_lol_master': { name: '1v1.lol Master', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played 1v1.lol 250+ times.' },
+            '1v1_lol_mythic': { name: '1v1.lol Mythic', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played 1v1.lol 500+ times.' },
+            '1v1_lol_insane': { name: '1v1.lol Insane', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played 1v1.lol 1000+ times.' },
+            'slope_rookie': { name: 'Slope Rookie', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Slope 5+ times.' },
+            'slope_pro': { name: 'Slope Pro', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Slope 25+ times.' },
+            'slope_legend': { name: 'Slope Legend', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Slope 100+ times.' },
+            'slope_master': { name: 'Slope Master', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Slope 250+ times.' },
+            'slope_mythic': { name: 'Slope Mythic', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Slope 500+ times.' },
+            'slope_insane': { name: 'Slope Insane', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Slope 1000+ times.' },
+            'drift_hunters_rookie': { name: 'Drift Hunters Rookie', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Drift Hunters 5+ times.' },
+            'drift_hunters_pro': { name: 'Drift Hunters Pro', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Drift Hunters 25+ times.' },
+            'drift_hunters_legend': { name: 'Drift Hunters Legend', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Drift Hunters 100+ times.' },
+            'drift_hunters_master': { name: 'Drift Hunters Master', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Drift Hunters 250+ times.' },
+            'drift_hunters_mythic': { name: 'Drift Hunters Mythic', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Drift Hunters 500+ times.' },
+            'drift_hunters_insane': { name: 'Drift Hunters Insane', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Drift Hunters 1000+ times.' },
+            'shell_shockers_rookie': { name: 'Shell Shockers Rookie', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Shell Shockers 5+ times.' },
+            'shell_shockers_pro': { name: 'Shell Shockers Pro', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Shell Shockers 25+ times.' },
+            'shell_shockers_legend': { name: 'Shell Shockers Legend', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Shell Shockers 100+ times.' },
+            'shell_shockers_master': { name: 'Shell Shockers Master', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Shell Shockers 250+ times.' },
+            'shell_shockers_mythic': { name: 'Shell Shockers Mythic', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Shell Shockers 500+ times.' },
+            'shell_shockers_insane': { name: 'Shell Shockers Insane', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Shell Shockers 1000+ times.' },
+            'moto_x3m_rookie': { name: 'Moto X3M Rookie', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Moto X3M 5+ times.' },
+            'moto_x3m_pro': { name: 'Moto X3M Pro', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Moto X3M 25+ times.' },
+            'moto_x3m_legend': { name: 'Moto X3M Legend', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Moto X3M 100+ times.' },
+            'moto_x3m_master': { name: 'Moto X3M Master', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Moto X3M 250+ times.' },
+            'moto_x3m_mythic': { name: 'Moto X3M Mythic', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Moto X3M 500+ times.' },
+            'moto_x3m_insane': { name: 'Moto X3M Insane', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Moto X3M 1000+ times.' },
+            'subway_surfers_rookie': { name: 'Subway Surfers Rookie', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Subway Surfers 5+ times.' },
+            'subway_surfers_pro': { name: 'Subway Surfers Pro', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Subway Surfers 25+ times.' },
+            'subway_surfers_legend': { name: 'Subway Surfers Legend', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Subway Surfers 100+ times.' },
+            'subway_surfers_master': { name: 'Subway Surfers Master', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Subway Surfers 250+ times.' },
+            'subway_surfers_mythic': { name: 'Subway Surfers Mythic', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Subway Surfers 500+ times.' },
+            'subway_surfers_insane': { name: 'Subway Surfers Insane', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Subway Surfers 1000+ times.' },
+            'achievement_1_1': { name: 'Achievement 1-1', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 1, tier 1.' },
+            'achievement_1_2': { name: 'Achievement 1-2', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 1, tier 2.' },
+            'achievement_1_3': { name: 'Achievement 1-3', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 1, tier 3.' },
+            'achievement_1_4': { name: 'Achievement 1-4', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 1, tier 4.' },
+            'achievement_1_5': { name: 'Achievement 1-5', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 1, tier 5.' },
+            'achievement_1_6': { name: 'Achievement 1-6', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 1, tier 6.' },
+            'achievement_1_7': { name: 'Achievement 1-7', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 1, tier 7.' },
+            'achievement_1_8': { name: 'Achievement 1-8', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 1, tier 8.' },
+            'achievement_1_9': { name: 'Achievement 1-9', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 1, tier 9.' },
+            'achievement_1_10': { name: 'Achievement 1-10', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 1, tier 10.' },
+            'achievement_2_1': { name: 'Achievement 2-1', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 2, tier 1.' },
+            'achievement_2_2': { name: 'Achievement 2-2', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 2, tier 2.' },
+            'achievement_2_3': { name: 'Achievement 2-3', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 2, tier 3.' },
+            'achievement_2_4': { name: 'Achievement 2-4', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 2, tier 4.' },
+            'achievement_2_5': { name: 'Achievement 2-5', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 2, tier 5.' },
+            'achievement_2_6': { name: 'Achievement 2-6', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 2, tier 6.' },
+            'achievement_2_7': { name: 'Achievement 2-7', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 2, tier 7.' },
+            'achievement_2_8': { name: 'Achievement 2-8', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 2, tier 8.' },
+            'achievement_2_9': { name: 'Achievement 2-9', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 2, tier 9.' },
+            'achievement_2_10': { name: 'Achievement 2-10', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 2, tier 10.' },
+            'achievement_3_1': { name: 'Achievement 3-1', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 3, tier 1.' },
+            'achievement_3_2': { name: 'Achievement 3-2', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 3, tier 2.' },
+            'achievement_3_3': { name: 'Achievement 3-3', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 3, tier 3.' },
+            'achievement_3_4': { name: 'Achievement 3-4', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 3, tier 4.' },
+            'achievement_3_5': { name: 'Achievement 3-5', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 3, tier 5.' },
+            'achievement_3_6': { name: 'Achievement 3-6', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 3, tier 6.' },
+            'achievement_3_7': { name: 'Achievement 3-7', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 3, tier 7.' },
+            'achievement_3_8': { name: 'Achievement 3-8', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 3, tier 8.' },
+            'achievement_3_9': { name: 'Achievement 3-9', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 3, tier 9.' },
+            'achievement_3_10': { name: 'Achievement 3-10', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 3, tier 10.' },
+            'achievement_4_1': { name: 'Achievement 4-1', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 4, tier 1.' },
+            'achievement_4_2': { name: 'Achievement 4-2', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 4, tier 2.' },
+            'achievement_4_3': { name: 'Achievement 4-3', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 4, tier 3.' },
+            'achievement_4_4': { name: 'Achievement 4-4', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 4, tier 4.' },
+            'achievement_4_5': { name: 'Achievement 4-5', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 4, tier 5.' },
+            'achievement_4_6': { name: 'Achievement 4-6', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 4, tier 6.' },
+            'achievement_4_7': { name: 'Achievement 4-7', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 4, tier 7.' },
+            'achievement_4_8': { name: 'Achievement 4-8', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 4, tier 8.' },
+            'achievement_4_9': { name: 'Achievement 4-9', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 4, tier 9.' },
+            'achievement_4_10': { name: 'Achievement 4-10', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 4, tier 10.' },
+            'achievement_5_1': { name: 'Achievement 5-1', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 5, tier 1.' },
+            'achievement_5_2': { name: 'Achievement 5-2', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 5, tier 2.' },
+            'achievement_5_3': { name: 'Achievement 5-3', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 5, tier 3.' },
+            'achievement_5_4': { name: 'Achievement 5-4', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 5, tier 4.' },
+            'achievement_5_5': { name: 'Achievement 5-5', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 5, tier 5.' },
+            'achievement_5_6': { name: 'Achievement 5-6', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 5, tier 6.' },
+            'achievement_5_7': { name: 'Achievement 5-7', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 5, tier 7.' },
+            'achievement_5_8': { name: 'Achievement 5-8', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 5, tier 8.' },
+            'achievement_5_9': { name: 'Achievement 5-9', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 5, tier 9.' },
+            'achievement_5_10': { name: 'Achievement 5-10', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 5, tier 10.' },
+            'achievement_6_1': { name: 'Achievement 6-1', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 6, tier 1.' },
+            'achievement_6_2': { name: 'Achievement 6-2', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 6, tier 2.' },
+            'achievement_6_3': { name: 'Achievement 6-3', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 6, tier 3.' },
+            'achievement_6_4': { name: 'Achievement 6-4', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 6, tier 4.' },
+            'achievement_6_5': { name: 'Achievement 6-5', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 6, tier 5.' },
+            'achievement_6_6': { name: 'Achievement 6-6', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 6, tier 6.' },
+            'achievement_6_7': { name: 'Achievement 6-7', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 6, tier 7.' },
+            'achievement_6_8': { name: 'Achievement 6-8', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 6, tier 8.' },
+            'achievement_6_9': { name: 'Achievement 6-9', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 6, tier 9.' },
+            'achievement_6_10': { name: 'Achievement 6-10', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 6, tier 10.' },
+            'achievement_7_1': { name: 'Achievement 7-1', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 7, tier 1.' },
+            'achievement_7_2': { name: 'Achievement 7-2', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 7, tier 2.' },
+            'achievement_7_3': { name: 'Achievement 7-3', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 7, tier 3.' },
+            'achievement_7_4': { name: 'Achievement 7-4', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 7, tier 4.' },
+            'achievement_7_5': { name: 'Achievement 7-5', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 7, tier 5.' },
+            'achievement_7_6': { name: 'Achievement 7-6', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 7, tier 6.' },
+            'achievement_7_7': { name: 'Achievement 7-7', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 7, tier 7.' },
+            'achievement_7_8': { name: 'Achievement 7-8', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 7, tier 8.' },
+            'achievement_7_9': { name: 'Achievement 7-9', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 7, tier 9.' },
+            'achievement_7_10': { name: 'Achievement 7-10', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 7, tier 10.' },
+            'achievement_8_1': { name: 'Achievement 8-1', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 8, tier 1.' },
+            'achievement_8_2': { name: 'Achievement 8-2', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 8, tier 2.' },
+            'achievement_8_3': { name: 'Achievement 8-3', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 8, tier 3.' },
+            'achievement_8_4': { name: 'Achievement 8-4', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 8, tier 4.' },
+            'achievement_8_5': { name: 'Achievement 8-5', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 8, tier 5.' },
+            'achievement_8_6': { name: 'Achievement 8-6', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 8, tier 6.' },
+            'achievement_8_7': { name: 'Achievement 8-7', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 8, tier 7.' },
+            'achievement_8_8': { name: 'Achievement 8-8', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 8, tier 8.' },
+            'achievement_8_9': { name: 'Achievement 8-9', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 8, tier 9.' },
+            'achievement_8_10': { name: 'Achievement 8-10', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 8, tier 10.' },
+            'achievement_9_1': { name: 'Achievement 9-1', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 9, tier 1.' },
+            'achievement_9_2': { name: 'Achievement 9-2', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 9, tier 2.' },
+            'achievement_9_3': { name: 'Achievement 9-3', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 9, tier 3.' },
+            'achievement_9_4': { name: 'Achievement 9-4', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 9, tier 4.' },
+            'achievement_9_5': { name: 'Achievement 9-5', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 9, tier 5.' },
+            'achievement_9_6': { name: 'Achievement 9-6', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 9, tier 6.' },
+            'achievement_9_7': { name: 'Achievement 9-7', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 9, tier 7.' },
+            'achievement_9_8': { name: 'Achievement 9-8', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 9, tier 8.' },
+            'achievement_9_9': { name: 'Achievement 9-9', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 9, tier 9.' },
+            'achievement_9_10': { name: 'Achievement 9-10', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 9, tier 10.' },
+            'achievement_10_1': { name: 'Achievement 10-1', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 10, tier 1.' },
+            'achievement_10_2': { name: 'Achievement 10-2', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 10, tier 2.' },
+            'achievement_10_3': { name: 'Achievement 10-3', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 10, tier 3.' },
+            'achievement_10_4': { name: 'Achievement 10-4', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 10, tier 4.' },
+            'achievement_10_5': { name: 'Achievement 10-5', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 10, tier 5.' },
+            'achievement_10_6': { name: 'Achievement 10-6', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 10, tier 6.' },
+            'achievement_10_7': { name: 'Achievement 10-7', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 10, tier 7.' },
+            'achievement_10_8': { name: 'Achievement 10-8', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 10, tier 8.' },
+            'achievement_10_9': { name: 'Achievement 10-9', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 10, tier 9.' },
+            'achievement_10_10': { name: 'Achievement 10-10', icon: 'medal', color: 'text-emerald-300', description: 'Completed milestone set 10, tier 10.' }
         };
 
         let activeDM = null;
@@ -1576,6 +2075,7 @@
             const input = document.getElementById('dm-input');
             const text = input.value.trim();
             if (!text || !activeDM) return;
+            if ((currentUserProfile.blockedUsers || []).includes(activeDM.id)) return alert('Unblock this user before sending a DM.');
             
             try {
                 const participants = [currentUser.uid, activeDM.id].sort();
@@ -1642,6 +2142,9 @@
                         <button onclick="openDM('${f.id}', '${f.name}')" class="text-blue-500 hover:text-blue-400 p-2 rounded-lg hover:bg-blue-500/10 transition-colors">
                             <i data-lucide="message-square" class="w-5 h-5"></i>
                         </button>
+                        <button onclick="giftPoints('${f.id}','${f.name}')" class="text-emerald-400 hover:text-emerald-300 p-2 rounded-lg hover:bg-emerald-500/10 transition-colors">
+                            <i data-lucide="gift" class="w-5 h-5"></i>
+                        </button>
                         <button onclick="removeFriend('${f.id}')" class="text-red-500 hover:text-red-400 p-2 rounded-lg hover:bg-red-500/10 transition-colors">
                             <i data-lucide="user-minus" class="w-5 h-5"></i>
                         </button>
@@ -1665,6 +2168,20 @@
             } catch (e) {
                 handleFirestoreError(e, OperationType.DELETE, 'friend_requests');
             }
+        };
+
+        window.giftPoints = async (friendId, friendName) => {
+            const amount = parseInt(prompt(`Gift how many points to ${friendName}?`, '25') || '0');
+            if (!amount || amount <= 0) return;
+            if ((currentUserProfile.points || 0) < amount) return alert('Not enough points.');
+            const friendRef = doc(db, 'users', friendId);
+            const friendDoc = await getDoc(friendRef);
+            if (!friendDoc.exists()) return alert('Friend account not found.');
+            await updateDoc(doc(db, 'users', currentUser.uid), { points: (currentUserProfile.points || 0) - amount });
+            await updateDoc(friendRef, { points: (friendDoc.data().points || 0) + amount });
+            currentUserProfile.points = (currentUserProfile.points || 0) - amount;
+            updatePointsDisplay();
+            alert(`Gifted ${amount} points to ${friendName}.`);
         };
 
         async function loadRequests() {
@@ -1700,6 +2217,47 @@
             loadRequests();
         };
 
+
+        function setupUserMeta() {
+            onSnapshot(collection(db, 'users'), (snap) => {
+                userMetaById = {};
+                let topUid = null;
+                let topPoints = -Infinity;
+                snap.forEach(d => {
+                    const data = d.data();
+                    userMetaById[d.id] = data;
+                    if ((data.points || 0) > topPoints) {
+                        topPoints = data.points || 0;
+                        topUid = d.id;
+                    }
+                });
+                topPointsUid = topUid;
+                if (currentUser && userMetaById[currentUser.uid]) {
+                    currentUserProfile = { ...currentUserProfile, ...userMetaById[currentUser.uid] };
+                    evaluateAchievements();
+                }
+            });
+        }
+
+
+        async function evaluateAchievements() {
+            if (!currentUser || !currentUserProfile) return;
+            const badges = new Set(currentUserProfile.badges || []);
+            if ((currentUserProfile.messagesSent || 0) >= 100) badges.add('chatterbox');
+            if ((currentUserProfile.messagesSent || 0) >= 500) badges.add('top_chatter');
+            if ((currentUserProfile.points || 0) >= 1000) badges.add('grinder');
+            if ((currentUserProfile.points || 0) >= 5000) badges.add('top_points');
+            if ((currentUserProfile.gamesPlayed || 0) >= 50) badges.add('veteran');
+            if ((currentUserProfile.role || '') === 'admin') badges.add('admin_badge');
+            if ((currentUserProfile.username || '').toLowerCase() === 'kyler') badges.add('owner_badge');
+
+            const next = Array.from(badges);
+            if (next.length !== (currentUserProfile.badges || []).length) {
+                await updateDoc(doc(db, 'users', currentUser.uid), { badges: next });
+                currentUserProfile.badges = next;
+            }
+        }
+
         function setupChat() {
             onSnapshot(query(collection(db, "messages"), orderBy("timestamp", "desc"), limit(50)), (snap) => {
                 const container = document.getElementById('chat-messages');
@@ -1707,18 +2265,29 @@
                 container.innerHTML = '';
                 snap.forEach(d => {
                     const m = d.data();
+                    const blocked = currentUserProfile.blockedUsers || [];
+                    if (blocked.includes(m.uid)) return;
                     const isMine = m.uid === currentUser.uid;
                     const isAdminUser = currentUserProfile.role === 'admin';
                     const div = document.createElement('div');
                     div.className = `message-container ${isMine ? 'items-end' : 'items-start'}`;
                     div.innerHTML = `
-                        <div class="message-bubble ${isMine ? 'mine' : 'others'}">
+                        <div class="message-bubble ${isMine ? 'mine' : 'others'}" style="border-color:${(userMetaById[m.uid]?.profileColor)||'#3b82f6'}55;background:${(userMetaById[m.uid]?.profileColor)||'#3b82f6'}18">
                             <div class="flex justify-between items-start gap-4">
-                                <span class="text-[10px] font-bold block mb-1">${m.user}</span>
+                                <div class="flex items-center gap-1 mb-1"><button onclick="showUserProfile('${m.uid}')" class="text-[10px] font-bold hover:text-blue-400">${m.user}</button>${(() => { const meta=userMetaById[m.uid]||{}; const tags=[]; if(m.uid===topPointsUid) tags.push('<span class=\"text-[9px] px-1 rounded bg-yellow-600/30 text-yellow-300\">Top Points</span>'); if((meta.role||'')==='admin') tags.push('<span class=\"text-[9px] px-1 rounded bg-blue-600/30 text-blue-300\">Admin</span>'); if((meta.role||'')==='owner'||(meta.username||'').toLowerCase()==='kyler') tags.push('<span class=\"text-[9px] px-1 rounded bg-purple-600/30 text-purple-300\">Owner</span>'); return tags.join(''); })()}</div>
                                 ${isAdminUser ? `<button onclick="deleteMessage('${d.id}')" class="text-red-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"><i data-lucide="trash-2" class="w-3 h-3"></i></button>` : ''}
                             </div>
-                            ${m.gif ? `<img src="${m.gif}" class="rounded-lg mb-2">` : ''}
+                            ${m.gif ? `<img src="${m.gif}" class="rounded-lg mb-2 w-full max-h-56 object-contain bg-black/20">` : ''}
+                            ${m.reply ? `<p class="text-[10px] text-zinc-400 border-l-2 border-zinc-600 pl-2 mb-1">↪ ${m.reply.user}: ${m.reply.text}</p>` : ''}
                             <p class="text-sm">${m.text || ''}</p>
+                            <div class="flex gap-2 mt-2">
+                                ${!isMine ? `<button onclick="reportChatMessage('${d.id}')" class="text-[10px] text-red-400 hover:underline">Report</button>` : ''}
+                                ${isAdminUser && !isMine ? `<button onclick=\"warnUser('${m.uid}')\" class=\"text-[10px] text-yellow-400 hover:underline\">Warn</button>` : ''}
+                                <button onclick="setReply('${d.id}', '${m.user}', \`${(m.text || '').replace(/`/g, '')}\`)" class="text-[10px] text-blue-400 hover:underline">Reply</button>
+                            </div>
+                            <div class="flex gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                ${['👍','🔥','😂','❤️'].map(e=>`<button onclick=\"toggleReaction('${d.id}','${e}')\" class=\"text-xs px-1.5 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700\">${e} ${(m.reactions?.[e]||[]).length}</button>`).join('')}
+                            </div>
                         </div>
                     `;
                     div.classList.add('group');
@@ -1728,39 +2297,86 @@
             });
         }
 
+
+        window.toggleReaction = async (messageId, emoji) => {
+            const ref = doc(db, 'messages', messageId);
+            const snap = await getDoc(ref);
+            if (!snap.exists()) return;
+            const data = snap.data();
+            const reactions = data.reactions || {};
+            const list = reactions[emoji] || [];
+            const has = list.includes(currentUser.uid);
+            reactions[emoji] = has ? list.filter(uid => uid !== currentUser.uid) : [...list, currentUser.uid];
+            await updateDoc(ref, { reactions });
+        };
+
         window.deleteMessage = async (id) => {
             if (confirm("Delete this message?")) {
                 await deleteDoc(doc(db, "messages", id));
             }
         };
 
+        window.setReply = (id, user, text) => {
+            replyToMessage = { id, user, text: (text || '').slice(0, 120) };
+            const input = document.getElementById('chat-input');
+            if (input) input.placeholder = `Replying to ${user}...`;
+        };
+
         window.sendMessage = async (gifUrl = null) => {
             const input = document.getElementById('chat-input');
             const text = input.value.trim();
-            if ((text || gifUrl) && currentUser) {
-                if (text.startsWith('/') && currentUserProfile.role === 'admin') {
-                    handleAdminCommand(text);
-                    input.value = '';
-                    return;
-                }
-                await addDoc(collection(db, "messages"), {
-                    user: currentUserProfile.username,
-                    text: text,
-                    gif: gifUrl,
-                    uid: currentUser.uid,
-                    timestamp: Date.now()
-                });
-                
-                // Increment messages sent
-                const newCount = (currentUserProfile.messagesSent || 0) + 1;
-                await updateDoc(doc(db, "users", currentUser.uid), { messagesSent: newCount });
-                currentUserProfile.messagesSent = newCount;
+            if (!(text || gifUrl) || !currentUser) return;
+            if (currentUserProfile.banned) return alert('You are banned from chat. Use the gavel button to appeal.');
+            if (currentUserProfile.muted) return alert('You are muted by an admin.');
 
-                input.value = '';
-                if (gifUrl) {
-                    const picker = document.getElementById('gif-picker');
-                    if (picker) picker.classList.add('hidden');
+            const isBypass = currentUserProfile.role === 'admin' || (slowmodeSettings.bypassUsers || []).map(v => v.toLowerCase()).includes((currentUserProfile.username || '').toLowerCase());
+            if (slowmodeSettings.enabled && !isBypass) {
+                const now = Date.now();
+                const remaining = (slowmodeSettings.seconds * 1000) - (now - lastMessageAt);
+                if (remaining > 0) {
+                    return alert(`Slowmode is on. Wait ${Math.ceil(remaining / 1000)}s.`);
                 }
+            }
+
+            if (text.startsWith('/') && currentUserProfile.role === 'admin') {
+                handleAdminCommand(text);
+                input.value = '';
+                return;
+            }
+
+            await addDoc(collection(db, "messages"), {
+                user: currentUserProfile.username,
+                text: text,
+                gif: gifUrl || '',
+                reply: replyToMessage,
+                uid: currentUser.uid,
+                timestamp: Date.now()
+            });
+            lastMessageAt = Date.now();
+            
+            const newCount = (currentUserProfile.messagesSent || 0) + 1;
+            const updatePayload = { messagesSent: newCount };
+            const nonSpam = (text || '').trim().length >= 10 && (Date.now() - lastMessagePointAt) > 15000;
+            if (nonSpam) {
+                updatePayload.points = (currentUserProfile.points || 0) + 1;
+                currentUserProfile.points = updatePayload.points;
+                lastMessagePointAt = Date.now();
+                updatePointsDisplay();
+            }
+            if (newCount >= 100) {
+                const badges = currentUserProfile.badges || [];
+                if (!badges.includes('chatterbox')) updatePayload.badges = [...badges, 'chatterbox'];
+            }
+            await updateDoc(doc(db, "users", currentUser.uid), updatePayload);
+            currentUserProfile.messagesSent = newCount;
+            evaluateAchievements();
+
+            input.value = '';
+            input.placeholder = 'Type a message...';
+            replyToMessage = null;
+            if (gifUrl) {
+                const picker = document.getElementById('gif-picker');
+                if (picker) picker.classList.add('hidden');
             }
         };
 
@@ -1787,16 +2403,22 @@
 
         // Slots
         const SLOT_ITEMS = ['🍒', '🍋', '🔔', '💎', '7️⃣'];
+        function getBetAmount(defaultBet = 10) {
+            const val = parseInt(document.getElementById('gamble-bet')?.value || defaultBet);
+            return Math.max(5, Math.min(500, isNaN(val) ? defaultBet : val));
+        }
         window.openSlots = () => {
             const slotsModal = document.getElementById('slots-modal');
             if (slotsModal) slotsModal.classList.remove('hidden');
+            setGambleTab('slots');
         };
         window.closeSlots = () => {
             const slotsModal = document.getElementById('slots-modal');
             if (slotsModal) slotsModal.classList.add('hidden');
         };
         window.spinSlots = async () => {
-            if (currentUserProfile.points < 10) return alert("Not enough points!");
+            const bet = getBetAmount(10);
+            if (currentUserProfile.points < bet) return alert("Not enough points!");
             
             const btn = document.getElementById('spin-btn');
             if (btn) btn.disabled = true;
@@ -1805,7 +2427,9 @@
                 if (r) r.classList.add('spinning');
             });
             
-            await new Promise(r => setTimeout(r, 1000));
+            const spinIntervals = reels.map(r => setInterval(() => { if (r) r.innerText = SLOT_ITEMS[Math.floor(Math.random()*SLOT_ITEMS.length)]; }, 90));
+            await new Promise(r => setTimeout(r, 1400));
+            spinIntervals.forEach(i => clearInterval(i));
             
             const results = reels.map(r => {
                 if (r) {
@@ -1817,11 +2441,11 @@
                 return null;
             });
 
-            let win = -10;
+            let win = -bet;
             if (results[0] && results[1] && results[2] && results[0] === results[1] && results[1] === results[2]) {
-                win = results[0] === '💎' ? 500 : 100;
-            } else if (results[0] && results[1] && results[2] && (results[0] === results[1] || results[1] === results[2] || results[0] === results[2])) {
-                win = 20;
+                win = results[0] === '💎' ? Math.floor(bet * 8) : Math.floor(bet * 3);
+            } else if (results.filter(Boolean).filter(v => v === '7️⃣').length >= 2) {
+                win = Math.floor(bet * 0.8);
             }
 
             const newPoints = currentUserProfile.points + win;
@@ -1844,7 +2468,7 @@
         };
         window.setAdminTab = (tab) => {
             currentAdminTab = tab;
-            ['approvals', 'users', 'logs', 'commands'].forEach(t => {
+            ['approvals', 'users', 'logs', 'moderation', 'settings', 'commands'].forEach(t => {
                 const view = document.getElementById(`admin-view-${t}`);
                 const btn = document.getElementById(`atab-${t}`);
                 if (view) view.classList.toggle('hidden', t !== tab);
@@ -1853,6 +2477,8 @@
             if (tab === 'approvals') loadApprovals();
             if (tab === 'users') loadUsers();
             if (tab === 'logs') loadAdminLogs();
+            if (tab === 'moderation') { loadChatReports(); loadBanAppeals(); }
+            if (tab === 'settings') loadSlowmodeSettings();
         };
 
         async function loadAdminLogs() {
@@ -1904,7 +2530,10 @@
             list.innerHTML = snap.docs.map(d => `
                 <div class="flex justify-between items-center p-3 bg-zinc-800 rounded-lg">
                     <span>${d.data().username}</span>
-                    <button onclick="approveUser('${d.id}')" class="bg-blue-600 px-3 py-1 rounded">Approve</button>
+                    <div class="flex gap-2">
+                        <button onclick="approveUser('${d.id}')" class="bg-blue-600 px-3 py-1 rounded">Approve</button>
+                        <button onclick="denyUser('${d.id}')" class="bg-red-600 px-3 py-1 rounded">Deny</button>
+                    </div>
                 </div>
             `).join('');
         }
@@ -1914,8 +2543,160 @@
             loadApprovals();
         };
 
+        window.denyUser = async (id) => {
+            if (!confirm('Deny and remove this pending account profile?')) return;
+            await deleteDoc(doc(db, "users", id));
+            loadApprovals();
+        };
+
+
+        function setupAnnouncementListener() {
+            onSnapshot(
+                query(collection(db, 'update_logs'), where('version', '==', 'broadcast'), orderBy('timestamp', 'desc'), limit(1)),
+                (snap) => {
+                    const bar = document.getElementById('announcement-bar');
+                    if (!bar) return;
+                    if (snap.empty) {
+                        bar.classList.add('hidden');
+                        bar.innerText = '';
+                        return;
+                    }
+                    const data = snap.docs[0].data();
+                    if ((Date.now() - (data.timestamp || 0)) > 1000 * 60 * 10) { bar.classList.add('hidden'); return; }
+                    bar.innerText = `📢 ${data.content}`;
+                    bar.classList.remove('hidden');
+                }
+            );
+        }
+
+        window.toggleCommunityModal = () => {
+            const modal = document.getElementById('community-modal');
+            if (!modal) return;
+            modal.classList.toggle('hidden');
+            if (!modal.classList.contains('hidden')) {
+                loadCommunityPosts();
+                toggleCommunityComposer(false);
+            }
+        };
+
+        window.toggleProfileShopModal = () => {
+            const modal = document.getElementById('profile-shop-modal');
+            if (!modal) return;
+            modal.classList.toggle('hidden');
+            if (!modal.classList.contains('hidden')) renderProfileShop();
+        };
+
+        window.toggleCommunityComposer = (force = null) => {
+            const composer = document.getElementById('community-composer');
+            if (!composer) return;
+            if (force === null) composer.classList.toggle('hidden');
+            else composer.classList.toggle('hidden', !force);
+        };
+
+        window.createCommunityPost = async () => {
+            const title = document.getElementById('community-title').value.trim();
+            const body = document.getElementById('community-body').value.trim();
+            if (!title || !body) return alert('Add a title and message.');
+            await addDoc(collection(db, 'suggestions'), {
+                uid: currentUser.uid,
+                username: currentUserProfile.username,
+                text: `[THREAD] ${title}\n${body}`,
+                timestamp: Date.now()
+            });
+            document.getElementById('community-title').value = '';
+            document.getElementById('community-body').value = '';
+            loadCommunityPosts();
+            toggleCommunityComposer(false);
+        };
+
+        async function loadCommunityPosts() {
+            const wrap = document.getElementById('community-posts');
+            if (!wrap || !currentUser) return;
+            const snap = await getDocs(query(collection(db, 'suggestions'), orderBy('timestamp', 'desc'), limit(100)));
+            const search = (document.getElementById('community-search')?.value || '').toLowerCase();
+            document.getElementById('community-back-btn')?.classList.toggle('hidden', !activeThreadId);
+            const docs = activeThreadId ? snap.docs.filter(d => d.id === activeThreadId) : snap.docs;
+            wrap.innerHTML = docs.map(d => {
+                const p = d.data();
+                if (!(p.text || '').startsWith('[THREAD]')) return '';
+                if (search && !(p.text || '').toLowerCase().includes(search)) return '';
+                const thread = (p.text || '').replace('[THREAD] ', '');
+                const [title, ...rest] = thread.split('\n');
+                const replies = p.replies || [];
+                const reactions = p.reactions || {};
+                const expanded = activeThreadId === d.id;
+                return `<div class="group p-3 rounded-xl bg-zinc-900 border border-zinc-800 cursor-pointer" onclick="openThread('${d.id}')">
+                    <div class="font-bold hover:text-violet-300 text-left w-full">${title || 'Thread'}</div>
+                    <div class="text-xs text-zinc-500 mb-2">by ${p.username}</div>
+                    <div class="text-sm text-zinc-300 mb-2 ${expanded ? '' : 'line-clamp-2'}">${rest.join('\n')}</div>
+                    <div class="flex gap-1 mb-2 opacity-0 group-hover:opacity-100 transition-opacity" onclick="event.stopPropagation()">
+                        ${['👍','🔥','😂','❤️'].map(e=>`<button onclick="toggleThreadReaction('${d.id}','${e}')" class="text-xs px-1.5 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700">${e} ${(reactions[e]||[]).length}</button>`).join('')}
+                        ${p.uid === currentUser.uid || currentUserProfile.role === 'admin' ? `<button onclick="deleteThread('${d.id}')" class="text-xs px-1.5 py-0.5 rounded bg-red-900/40 text-red-300">Delete</button>` : ''}
+                    </div>
+                    <div class="space-y-1 mb-2">${replies.map((r,idx) => `<div class="text-xs text-zinc-400">↪ <span class="text-zinc-300">${r.user}</span>: ${r.text} <button onclick="toggleThreadReplyReaction('${d.id}', ${idx}, '❤️')" class="text-[10px] text-pink-300">❤️ ${(r.reactions?.['❤️']||[]).length}</button></div>`).join('')}</div>
+                    ${expanded ? `<button onclick=\"event.stopPropagation();replyToThread('${d.id}')\" class=\"text-xs text-violet-300 hover:underline\">Reply</button>` : '<span class="text-[10px] text-zinc-500">Open thread to reply</span>'}
+                </div>`;
+            }).join('') || '<div class="text-zinc-500 text-sm">No threads yet.</div>';
+        }
+
+        window.openThread = (id) => {
+            if (!id) { activeThreadId = null; loadCommunityPosts(); return; }
+            activeThreadId = activeThreadId === id ? null : id;
+            loadCommunityPosts();
+        };
+
+        window.toggleThreadReaction = async (id, emoji) => {
+            const ref = doc(db, 'suggestions', id);
+            const snap = await getDoc(ref);
+            if (!snap.exists()) return;
+            const reactions = snap.data().reactions || {};
+            const list = reactions[emoji] || [];
+            const has = list.includes(currentUser.uid);
+            reactions[emoji] = has ? list.filter(uid => uid !== currentUser.uid) : [...list, currentUser.uid];
+            await updateDoc(ref, { reactions });
+            loadCommunityPosts();
+        };
+
+        window.toggleThreadReplyReaction = async (id, index, emoji) => {
+            const ref = doc(db, 'suggestions', id);
+            const snap = await getDoc(ref);
+            if (!snap.exists()) return;
+            const replies = snap.data().replies || [];
+            if (!replies[index]) return;
+            const reactions = replies[index].reactions || {};
+            const list = reactions[emoji] || [];
+            const has = list.includes(currentUser.uid);
+            reactions[emoji] = has ? list.filter(uid => uid !== currentUser.uid) : [...list, currentUser.uid];
+            replies[index].reactions = reactions;
+            await updateDoc(ref, { replies });
+            loadCommunityPosts();
+        };
+
+        window.deleteThread = async (id) => {
+            if (!confirm('Delete this thread?')) return;
+            await deleteDoc(doc(db, 'suggestions', id));
+            if (activeThreadId === id) activeThreadId = null;
+            loadCommunityPosts();
+        };
+
+        window.replyToThread = async (id) => {
+            const text = prompt('Reply to this thread:');
+            if (!text || !text.trim()) return;
+            const ref = doc(db, 'suggestions', id);
+            const snap = await getDoc(ref);
+            if (!snap.exists()) return;
+            const replies = snap.data().replies || [];
+            replies.push({ user: currentUserProfile.username, text: text.trim(), at: Date.now() });
+            await updateDoc(ref, { replies });
+            loadCommunityPosts();
+        };
+
         window.serverCommand = async (cmd) => {
-            if (cmd === 'mute_all') {
+            if (cmd === 'clear_chat') {
+                const snap = await getDocs(collection(db, "messages"));
+                for (const d of snap.docs) await deleteDoc(doc(db, "messages", d.id));
+                alert('Chat cleared.');
+            } else if (cmd === 'mute_all') {
                 const snap = await getDocs(collection(db, "users"));
                 snap.forEach(async d => {
                     if (d.data().role !== 'admin') await updateDoc(doc(db, "users", d.id), { muted: true });
@@ -1930,10 +2711,10 @@
             } else if (cmd === 'broadcast') {
                 const msg = prompt("Enter broadcast message:");
                 if (msg) {
-                    await addDoc(collection(db, "messages"), {
-                        user: "SYSTEM",
-                        text: "📢 " + msg,
-                        uid: "system",
+                    await addDoc(collection(db, 'update_logs'), {
+                        version: 'broadcast',
+                        date: new Date().toLocaleString(),
+                        content: msg,
                         timestamp: Date.now()
                     });
                 }
@@ -1960,6 +2741,7 @@
                         </div>
                         <div class="flex flex-wrap gap-2">
                             <button onclick="adminAction('${d.id}', 'mute')" class="bg-zinc-800 hover:bg-yellow-600/20 text-xs px-3 py-1.5 rounded-lg border border-zinc-700 transition-all">${data.muted ? 'Unmute' : 'Mute'}</button>
+                            <button onclick="adminAction('${d.id}', 'ban')" class="bg-zinc-800 hover:bg-red-600/20 text-xs px-3 py-1.5 rounded-lg border border-zinc-700 transition-all">${data.banned ? 'Unban' : 'Ban'}</button>
                             <button onclick="manageUserBadges('${d.id}', '${data.username}')" class="bg-zinc-800 hover:bg-blue-600/20 text-xs px-3 py-1.5 rounded-lg border border-zinc-700 transition-all">Badges</button>
                             <button onclick="editUserStats('${d.id}', '${data.username}')" class="bg-zinc-800 hover:bg-green-600/20 text-xs px-3 py-1.5 rounded-lg border border-zinc-700 transition-all">Stats</button>
                             <button onclick="adminAction('${d.id}', 'delete_messages')" class="bg-zinc-800 hover:bg-orange-600/20 text-xs px-3 py-1.5 rounded-lg border border-zinc-700 transition-all text-orange-500">Clear Chat</button>
@@ -2026,9 +2808,6 @@
         };
 
         window.editUserStats = async (userId, username) => {
-            // Close admin panel
-            toggleAdminPanel();
-            
             const userDoc = await getDoc(doc(db, "users", userId));
             const data = userDoc.data();
             
@@ -2036,10 +2815,16 @@
             if (points === null) return;
             const level = prompt(`Edit level for ${username}:`, data.level || 1);
             if (level === null) return;
+            const playtime = prompt(`Edit total playtime seconds for ${username}:`, data.totalPlaytime || 0);
+            if (playtime === null) return;
+            const messages = prompt(`Edit messages sent for ${username}:`, data.messagesSent || 0);
+            if (messages === null) return;
             
             await updateDoc(doc(db, "users", userId), {
                 points: parseInt(points),
-                level: parseInt(level)
+                level: parseInt(level),
+                totalPlaytime: parseInt(playtime),
+                messagesSent: parseInt(messages)
             });
             loadUsers();
             alert("Stats updated!");
@@ -2049,6 +2834,10 @@
             if (action === 'mute') {
                 const userDoc = await getDoc(doc(db, "users", id));
                 await updateDoc(doc(db, "users", id), { muted: !userDoc.data().muted });
+            } else if (action === 'ban') {
+                const userDoc = await getDoc(doc(db, "users", id));
+                const currentlyBanned = !!userDoc.data().banned;
+                await updateDoc(doc(db, "users", id), { banned: !currentlyBanned, muted: !currentlyBanned });
             } else if (action === 'delete') {
                 if (confirm("Are you sure you want to delete this user? This will also clean up their data.")) {
                     // 1. Mark messages as deleted
@@ -2062,7 +2851,20 @@
                     for (const d of [...frSnap1.docs, ...frSnap2.docs]) {
                         await deleteDoc(doc(db, "friend_requests", d.id));
                     }
-                    // 3. Delete user doc
+                    // 3. Delete related docs (reports/appeals/ratings/suggestions/dms)
+                    const collectionsToClean = [
+                        query(collection(db, 'chat_reports'), where('reporterId', '==', id)),
+                        query(collection(db, 'ban_appeals'), where('uid', '==', id)),
+                        query(collection(db, 'ratings'), where('uid', '==', id)),
+                        query(collection(db, 'suggestions'), where('uid', '==', id)),
+                        query(collection(db, 'dms'), where('from', '==', id)),
+                        query(collection(db, 'dms'), where('to', '==', id))
+                    ];
+                    for (const q of collectionsToClean) {
+                        const s = await getDocs(q);
+                        for (const d of s.docs) { try { await deleteDoc(d.ref); } catch(e) { console.warn('cleanup skip', e); } }
+                    }
+                    // 4. Delete user doc
                     await deleteDoc(doc(db, "users", id));
                     alert("User deleted and data cleaned up.");
                 }
@@ -2076,35 +2878,212 @@
             loadUsers();
         };
 
+        const PROFILE_COSMETICS = [
+            { id: 'bg_neon', name: 'Neon Backdrop', cost: 300, tab: 'themes', bg: 'linear-gradient(135deg,#0f172a,#1d4ed8)' },
+            { id: 'bg_sunset', name: 'Sunset Backdrop', cost: 350, tab: 'themes', bg: 'linear-gradient(135deg,#7c2d12,#be123c)' },
+            { id: 'bg_forest', name: 'Forest Backdrop', cost: 280, tab: 'themes', bg: 'linear-gradient(135deg,#14532d,#166534)' },
+            { id: 'theme_gold', name: 'Gold Accent', cost: 220, tab: 'colors', color: '#f59e0b' },
+            { id: 'theme_rose', name: 'Rose Accent', cost: 220, tab: 'colors', color: '#f43f5e' },
+            { id: 'showcase_least_favorite', name: 'Least Favorite Showcase Slot', cost: 500, tab: 'showcases' },
+            { id: 'showcase_top_game', name: 'Top Game Showcase Slot', cost: 450, tab: 'showcases' },
+            { id: 'showcase_hidden_gem', name: 'Hidden Gem Showcase', cost: 420, tab: 'showcases' },
+            { id: 'theme_plasma', name: 'Plasma Accent', cost: 260, color: '#a855f7', tab: 'colors' },
+            { id: 'theme_ice', name: 'Ice Accent', cost: 260, color: '#38bdf8', tab: 'colors' },
+            { id: 'theme_lime', name: 'Lime Accent', cost: 260, color: '#84cc16', tab: 'colors' },
+            { id: 'bg_night_city', name: 'Night City Theme', cost: 520, bg: 'linear-gradient(135deg,#111827,#312e81)', tab: 'themes' },
+            { id: 'bg_candy', name: 'Candy Theme', cost: 520, bg: 'linear-gradient(135deg,#f472b6,#fb7185)', tab: 'themes' },
+            { id: 'bg_matrix', name: 'Matrix Theme', cost: 520, bg: 'linear-gradient(135deg,#052e16,#14532d)', tab: 'themes' },
+            { id: 'bg_arctic', name: 'Arctic Theme', cost: 540, bg: 'linear-gradient(135deg,#0f172a,#1e3a8a)', tab: 'themes' },
+            { id: 'bg_lava', name: 'Lava Theme', cost: 540, bg: 'linear-gradient(135deg,#450a0a,#b91c1c)', tab: 'themes' },
+            { id: 'bg_cyber', name: 'Cyber Theme', cost: 600, bg: 'linear-gradient(135deg,#4c1d95,#0f172a)', tab: 'themes' },
+            { id: 'theme_sky', name: 'Sky Accent', cost: 260, color: '#0ea5e9', tab: 'colors' },
+            { id: 'theme_mint', name: 'Mint Accent', cost: 260, color: '#10b981', tab: 'colors' },
+            { id: 'theme_orchid', name: 'Orchid Accent', cost: 260, color: '#c026d3', tab: 'colors' },
+            { id: 'showcase_speedrun', name: 'Speedrun Showcase Slot', cost: 480, tab: 'showcases' },
+            { id: 'showcase_mastered', name: 'Mastered Game Showcase', cost: 500, tab: 'showcases' },
+            { id: 'showcase_chill', name: 'Chill Game Showcase', cost: 450, tab: 'showcases' },
+            { id: 'showcase_rage', name: 'Rage Game Showcase', cost: 550, tab: 'showcases' },
+            { id: 'theme_extra_1', name: 'Aurora Drift', cost: 305, tab: 'themes', bg: 'linear-gradient(135deg,hsl(17 70% 20%), hsl(23 70% 45%))' },
+            { id: 'theme_extra_2', name: 'Midnight Bloom', cost: 310, tab: 'themes', bg: 'linear-gradient(135deg,hsl(34 70% 20%), hsl(46 70% 45%))' },
+            { id: 'theme_extra_3', name: 'Crimson Pulse', cost: 315, tab: 'themes', bg: 'linear-gradient(135deg,hsl(51 70% 20%), hsl(69 70% 45%))' },
+            { id: 'theme_extra_4', name: 'Solar Flare', cost: 320, tab: 'themes', bg: 'linear-gradient(135deg,hsl(68 70% 20%), hsl(92 70% 45%))' },
+            { id: 'theme_extra_5', name: 'Nebula Mist', cost: 325, tab: 'themes', bg: 'linear-gradient(135deg,hsl(85 70% 20%), hsl(115 70% 45%))' },
+            { id: 'theme_extra_6', name: 'Arctic Dawn', cost: 330, tab: 'themes', bg: 'linear-gradient(135deg,hsl(102 70% 20%), hsl(138 70% 45%))' },
+            { id: 'theme_extra_7', name: 'Emerald Dream', cost: 335, tab: 'themes', bg: 'linear-gradient(135deg,hsl(119 70% 20%), hsl(161 70% 45%))' },
+            { id: 'theme_extra_8', name: 'Violet Storm', cost: 340, tab: 'themes', bg: 'linear-gradient(135deg,hsl(136 70% 20%), hsl(184 70% 45%))' },
+            { id: 'theme_extra_9', name: 'Obsidian Wave', cost: 345, tab: 'themes', bg: 'linear-gradient(135deg,hsl(153 70% 20%), hsl(207 70% 45%))' },
+            { id: 'theme_extra_10', name: 'Cyber Sunset', cost: 350, tab: 'themes', bg: 'linear-gradient(135deg,hsl(170 70% 20%), hsl(230 70% 45%))' },
+            { id: 'theme_extra_11', name: 'Royal Tide', cost: 355, tab: 'themes', bg: 'linear-gradient(135deg,hsl(187 70% 20%), hsl(253 70% 45%))' },
+            { id: 'theme_extra_12', name: 'Inferno Grid', cost: 360, tab: 'themes', bg: 'linear-gradient(135deg,hsl(204 70% 20%), hsl(276 70% 45%))' },
+            { id: 'theme_extra_13', name: 'Frost Nova', cost: 365, tab: 'themes', bg: 'linear-gradient(135deg,hsl(221 70% 20%), hsl(299 70% 45%))' },
+            { id: 'theme_extra_14', name: 'Sakura Night', cost: 370, tab: 'themes', bg: 'linear-gradient(135deg,hsl(238 70% 20%), hsl(322 70% 45%))' },
+            { id: 'theme_extra_15', name: 'Copper Sky', cost: 375, tab: 'themes', bg: 'linear-gradient(135deg,hsl(255 70% 20%), hsl(345 70% 45%))' },
+            { id: 'theme_extra_16', name: 'Lunar Haze', cost: 380, tab: 'themes', bg: 'linear-gradient(135deg,hsl(272 70% 20%), hsl(8 70% 45%))' },
+            { id: 'theme_extra_17', name: 'Neon Meadow', cost: 385, tab: 'themes', bg: 'linear-gradient(135deg,hsl(289 70% 20%), hsl(31 70% 45%))' },
+            { id: 'theme_extra_18', name: 'Stormglass', cost: 390, tab: 'themes', bg: 'linear-gradient(135deg,hsl(306 70% 20%), hsl(54 70% 45%))' },
+            { id: 'theme_extra_19', name: 'Velvet Dusk', cost: 395, tab: 'themes', bg: 'linear-gradient(135deg,hsl(323 70% 20%), hsl(77 70% 45%))' },
+            { id: 'theme_extra_20', name: 'Radiant Eclipse', cost: 400, tab: 'themes', bg: 'linear-gradient(135deg,hsl(340 70% 20%), hsl(100 70% 45%))' },
+            { id: 'color_extra_1', name: 'Coral Pop', cost: 184, tab: 'colors', color: 'hsl(19 80% 55%)' },
+            { id: 'color_extra_2', name: 'Ocean Blue', cost: 188, tab: 'colors', color: 'hsl(38 80% 55%)' },
+            { id: 'color_extra_3', name: 'Mint Breeze', cost: 192, tab: 'colors', color: 'hsl(57 80% 55%)' },
+            { id: 'color_extra_4', name: 'Royal Purple', cost: 196, tab: 'colors', color: 'hsl(76 80% 55%)' },
+            { id: 'color_extra_5', name: 'Sunset Orange', cost: 200, tab: 'colors', color: 'hsl(95 80% 55%)' },
+            { id: 'color_extra_6', name: 'Rose Glow', cost: 204, tab: 'colors', color: 'hsl(114 80% 55%)' },
+            { id: 'color_extra_7', name: 'Lime Spark', cost: 208, tab: 'colors', color: 'hsl(133 80% 55%)' },
+            { id: 'color_extra_8', name: 'Sky Mint', cost: 212, tab: 'colors', color: 'hsl(152 80% 55%)' },
+            { id: 'color_extra_9', name: 'Cherry Red', cost: 216, tab: 'colors', color: 'hsl(171 80% 55%)' },
+            { id: 'color_extra_10', name: 'Electric Cyan', cost: 220, tab: 'colors', color: 'hsl(190 80% 55%)' },
+            { id: 'color_extra_11', name: 'Lavender Dust', cost: 224, tab: 'colors', color: 'hsl(209 80% 55%)' },
+            { id: 'color_extra_12', name: 'Amber Gold', cost: 228, tab: 'colors', color: 'hsl(228 80% 55%)' },
+            { id: 'color_extra_13', name: 'Slate Ice', cost: 232, tab: 'colors', color: 'hsl(247 80% 55%)' },
+            { id: 'color_extra_14', name: 'Peach Fizz', cost: 236, tab: 'colors', color: 'hsl(266 80% 55%)' },
+            { id: 'color_extra_15', name: 'Berry Ink', cost: 240, tab: 'colors', color: 'hsl(285 80% 55%)' },
+            { id: 'color_extra_16', name: 'Jade Glow', cost: 244, tab: 'colors', color: 'hsl(304 80% 55%)' },
+            { id: 'color_extra_17', name: 'Magma Red', cost: 248, tab: 'colors', color: 'hsl(323 80% 55%)' },
+            { id: 'color_extra_18', name: 'Cloud Silver', cost: 252, tab: 'colors', color: 'hsl(342 80% 55%)' },
+            { id: 'color_extra_19', name: 'Plasma Pink', cost: 256, tab: 'colors', color: 'hsl(1 80% 55%)' },
+            { id: 'color_extra_20', name: 'Forest Mint', cost: 260, tab: 'colors', color: 'hsl(20 80% 55%)' },
+            { id: 'showcase_extra_1', name: 'Speed Demon Spotlight', cost: 426, tab: 'showcases' },
+            { id: 'showcase_extra_2', name: 'Puzzle Master Spotlight', cost: 432, tab: 'showcases' },
+            { id: 'showcase_extra_3', name: 'Strategy Star Spotlight', cost: 438, tab: 'showcases' },
+            { id: 'showcase_extra_4', name: 'Chill Vibes Spotlight', cost: 444, tab: 'showcases' },
+            { id: 'showcase_extra_5', name: 'Action Hero Spotlight', cost: 450, tab: 'showcases' },
+            { id: 'showcase_extra_6', name: 'Arcade Legend Spotlight', cost: 456, tab: 'showcases' },
+            { id: 'showcase_extra_7', name: 'Stealth MVP Spotlight', cost: 462, tab: 'showcases' },
+            { id: 'showcase_extra_8', name: 'Clutch Moments Spotlight', cost: 468, tab: 'showcases' },
+            { id: 'showcase_extra_9', name: 'Weekly Favorite Spotlight', cost: 474, tab: 'showcases' },
+            { id: 'showcase_extra_10', name: 'Hidden Gem Spotlight', cost: 480, tab: 'showcases' },
+            { id: 'showcase_extra_11', name: 'Retro Love Spotlight', cost: 486, tab: 'showcases' },
+            { id: 'showcase_extra_12', name: 'Top Underdog Spotlight', cost: 492, tab: 'showcases' },
+            { id: 'showcase_extra_13', name: 'Racing King Spotlight', cost: 498, tab: 'showcases' },
+            { id: 'showcase_extra_14', name: 'Aim Trainer Spotlight', cost: 504, tab: 'showcases' },
+            { id: 'showcase_extra_15', name: 'Builder Spotlight', cost: 510, tab: 'showcases' },
+            { id: 'showcase_extra_16', name: 'Casual Flex Spotlight', cost: 516, tab: 'showcases' },
+            { id: 'showcase_extra_17', name: 'Highscore Spotlight', cost: 522, tab: 'showcases' },
+            { id: 'showcase_extra_18', name: 'Daily Driver Spotlight', cost: 528, tab: 'showcases' },
+            { id: 'showcase_extra_19', name: 'Weekend Pick Spotlight', cost: 534, tab: 'showcases' },
+            { id: 'showcase_extra_20', name: 'Hall of Fame Spotlight', cost: 540, tab: 'showcases' },
+        ];
+
+        function cosmeticPreviewMarkup(item) {
+            if (item.color) {
+                return `
+                    <div class="relative group inline-block mt-1">
+                        <span class="text-[10px] text-zinc-500 underline decoration-dotted cursor-help">Hover to preview</span>
+                        <div class="pointer-events-none absolute left-0 top-full mt-1 hidden group-hover:flex group-focus-within:flex items-center gap-2 rounded-md border border-zinc-700 bg-zinc-950/95 px-2 py-1 z-10 whitespace-nowrap">
+                            <span class="inline-block w-3 h-3 rounded-full border border-zinc-300/40" style="background:${item.color};"></span>
+                            <span class="text-[10px] text-zinc-300">${item.name}</span>
+                        </div>
+                    </div>
+                `;
+            }
+            if (item.bg) {
+                return `
+                    <div class="relative group inline-block mt-1">
+                        <span class="text-[10px] text-zinc-500 underline decoration-dotted cursor-help">Hover to preview</span>
+                        <div class="pointer-events-none absolute left-0 top-full mt-1 hidden group-hover:block group-focus-within:block rounded-md border border-zinc-700 bg-zinc-950/95 p-1 z-10">
+                            <div class="h-6 w-20 rounded" style="background:${item.bg};"></div>
+                        </div>
+                    </div>
+                `;
+            }
+            return '';
+        }
+
+        function renderProfileShop() {
+            const wrap = document.getElementById('profile-shop-items');
+            if (!wrap || !currentUserProfile) return;
+            const owned = currentUserProfile.ownedCosmetics || [];
+            wrap.innerHTML = PROFILE_COSMETICS.filter(item => (item.tab || 'showcases') === currentShopTab).map(item => {
+                const has = owned.includes(item.id);
+                return `
+                    <div class="flex justify-between items-center text-xs bg-zinc-900 rounded-lg p-2">
+                        <div>
+                            <div class="font-bold">${item.name}</div>${cosmeticPreviewMarkup(item)}
+                            <div class="text-zinc-500">${item.cost} pts</div>
+                        </div>
+                        ${has
+                            ? `<button onclick="applyCosmetic('${item.id}')" class="px-2 py-1 rounded bg-blue-600">Apply</button>`
+                            : `<button onclick="buyCosmetic('${item.id}')" class="px-2 py-1 rounded bg-green-600">Buy</button>`
+                        }
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.setShopTab = (tab) => {
+            currentShopTab = tab;
+            ['showcases','colors','themes'].forEach(t => document.getElementById(`shop-tab-${t}`)?.classList.toggle('active', t===tab));
+            renderProfileShop();
+        };
+
+        window.buyCosmetic = async (id) => {
+            const item = PROFILE_COSMETICS.find(i => i.id === id);
+            if (!item) return;
+            const owned = currentUserProfile.ownedCosmetics || [];
+            if (owned.includes(id)) return;
+            if ((currentUserProfile.points || 0) < item.cost) return alert('Not enough points.');
+            const points = (currentUserProfile.points || 0) - item.cost;
+            const ownedCosmetics = [...owned, id];
+            await updateDoc(doc(db, 'users', currentUser.uid), { points, ownedCosmetics });
+            currentUserProfile.points = points;
+            currentUserProfile.ownedCosmetics = ownedCosmetics;
+            updatePointsDisplay();
+            renderProfileShop();
+        };
+
+        window.applyCosmetic = async (id) => {
+            const item = PROFILE_COSMETICS.find(i => i.id === id);
+            if (!item) return;
+            if (item.color) {
+                await updateDoc(doc(db, 'users', currentUser.uid), { profileColor: item.color });
+                currentUserProfile.profileColor = item.color;
+                document.getElementById('profile-card').style.setProperty('--profile-color', item.color);
+            }
+            if (item.bg) {
+                await updateDoc(doc(db, 'users', currentUser.uid), { activeBackground: id });
+                currentUserProfile.activeBackground = id;
+                document.getElementById('profile-card').style.background = item.bg;
+            }
+        };
+
         // Profile
         window.showOwnProfile = () => {
-            renderProfileData(currentUserProfile, true);
+            renderProfileData(currentUserProfile, true, currentUser.uid);
         };
 
         window.showUserProfile = async (userId) => {
             const userDoc = await getDoc(doc(db, "users", userId));
             if (userDoc.exists()) {
-                renderProfileData(userDoc.data(), false);
+                renderProfileData(userDoc.data(), false, userId);
             }
         };
 
-        function renderProfileData(data, isOwn) {
+        function renderProfileData(data, isOwn, userId) {
+            profileViewingUserId = userId;
             document.getElementById('profile-username').innerText = data.username;
+            document.getElementById('profile-avatar').src = data.avatarUrl || `https://picsum.photos/seed/${data.username}/200`;
             document.getElementById('profile-role').innerText = data.role;
             document.getElementById('profile-points').innerText = data.points || 0;
             document.getElementById('profile-level').innerText = data.level || 1;
             document.getElementById('profile-games').innerText = data.gamesPlayed || 0;
-            document.getElementById('profile-playtime').innerText = Math.floor((data.totalPlaytime || 0) / 60) + 'm';
+            const secs = data.totalPlaytime || 0;
+            document.getElementById('profile-playtime').innerText = secs < 60 ? `${secs}s` : `${Math.floor(secs / 60)}m`; 
             document.getElementById('profile-messages').innerText = data.messagesSent || 0;
             document.getElementById('profile-bio').innerText = data.bio || "No bio set.";
             document.getElementById('profile-fav-game-display').innerText = data.favoriteGame || "None";
+            document.getElementById('profile-least-game-display').innerText = data.leastFavoriteGame ? `Least Favorite: ${data.leastFavoriteGame}` : '';
+            document.getElementById('profile-card').style.setProperty('--profile-color', data.profileColor || '#3b82f6');
+            const bgItem = PROFILE_COSMETICS.find(i => i.id === data.activeBackground && i.bg);
+            document.getElementById('profile-card').style.background = bgItem ? bgItem.bg : '#09090b';
             
             const badgesContainer = document.getElementById('profile-badges');
             if (badgesContainer) {
                 const userBadges = data.badges || [];
                 badgesContainer.innerHTML = userBadges.map(b => BADGES[b] ? `
-                    <div title="${BADGES[b].description}" class="w-10 h-10 bg-zinc-900 rounded-lg flex items-center justify-center ${BADGES[b].color} border border-zinc-800 shadow-lg cursor-help transition-all hover:scale-110">
-                        <i data-lucide="${BADGES[b].icon}" class="w-6 h-6"></i>
+                    <div title="${BADGES[b].description}" class="bg-zinc-900 rounded-lg p-2 border border-zinc-800 shadow-lg min-w-[120px]">
+                        <div class="flex items-center gap-2 ${BADGES[b].color}"><i data-lucide="${BADGES[b].icon}" class="w-4 h-4"></i><span class="text-xs font-bold text-white">${BADGES[b].name}</span></div>
+                        <p class="text-[10px] text-zinc-400 mt-1">${BADGES[b].description}</p>
                     </div>
                 ` : '').join('');
                 if (userBadges.length === 0) {
@@ -2115,14 +3094,37 @@
             const editSection = document.getElementById('profile-edit-section');
             if (editSection) {
                 if (isOwn) {
+                    renderProfileShop();
                     editSection.classList.remove('hidden');
                     document.getElementById('profile-bio-input').value = data.bio || "";
+                    document.getElementById('profile-avatar-input').value = data.avatarUrl || '';
+                    document.getElementById('profile-theme-color-input').value = data.profileColor || '#3b82f6';
+                    const leastWrap = document.getElementById('profile-least-wrap');
+                    const hasLeastUnlock = (data.ownedCosmetics || []).includes('showcase_least_favorite');
+                    if (leastWrap) leastWrap.classList.toggle('hidden', !hasLeastUnlock);
                     const favSelect = document.getElementById('profile-fav-game-input');
                     favSelect.innerHTML = '<option value="">None</option>' + GAMES.map(g => `
                         <option value="${g.title}" ${data.favoriteGame === g.title ? 'selected' : ''}>${g.title}</option>
                     `).join('');
+                    const leastSelect = document.getElementById('profile-least-game-input');
+                    if (leastSelect) {
+                        leastSelect.innerHTML = '<option value="">None</option>' + GAMES.map(g => `
+                            <option value="${g.title}" ${data.leastFavoriteGame === g.title ? 'selected' : ''}>${g.title}</option>
+                        `).join('');
+                    }
                 } else {
                     editSection.classList.add('hidden');
+                }
+            }
+
+            const blockBtn = document.getElementById('profile-block-btn');
+            if (blockBtn) {
+                if (isOwn) {
+                    blockBtn.classList.add('hidden');
+                } else {
+                    const blocked = (currentUserProfile.blockedUsers || []).includes(userId);
+                    blockBtn.classList.remove('hidden');
+                    blockBtn.innerText = blocked ? 'Unblock' : 'Block';
                 }
             }
 
@@ -2131,6 +3133,17 @@
             lucide.createIcons();
         }
 
+        window.toggleBlockCurrentProfile = async () => {
+            if (!profileViewingUserId || profileViewingUserId === currentUser.uid) return;
+            const blocked = currentUserProfile.blockedUsers || [];
+            const exists = blocked.includes(profileViewingUserId);
+            const next = exists ? blocked.filter(v => v !== profileViewingUserId) : [...blocked, profileViewingUserId];
+            await updateDoc(doc(db, 'users', currentUser.uid), { blockedUsers: next });
+            currentUserProfile.blockedUsers = next;
+            const btn = document.getElementById('profile-block-btn');
+            if (btn) btn.innerText = exists ? 'Block' : 'Unblock';
+        };
+
         window.closeProfile = () => {
             const profileModal = document.getElementById('profile-modal');
             if (profileModal) profileModal.classList.add('hidden');
@@ -2138,14 +3151,23 @@
         window.saveProfile = async () => {
             const bio = document.getElementById('profile-bio-input').value;
             const favoriteGame = document.getElementById('profile-fav-game-input').value;
+            const leastFavoriteGame = document.getElementById('profile-least-game-input')?.value || '';
+            const avatarUrl = document.getElementById('profile-avatar-input').value.trim();
+            const profileColor = document.getElementById('profile-theme-color-input').value || '#3b82f6';
             if (bio.length > 500) return alert("Bio too long! Max 500 chars.");
             
-            await updateDoc(doc(db, "users", currentUser.uid), { bio, favoriteGame });
+            await updateDoc(doc(db, "users", currentUser.uid), { bio, favoriteGame, leastFavoriteGame, avatarUrl, profileColor });
             currentUserProfile.bio = bio;
             currentUserProfile.favoriteGame = favoriteGame;
+            currentUserProfile.leastFavoriteGame = leastFavoriteGame;
+            currentUserProfile.avatarUrl = avatarUrl;
+            currentUserProfile.profileColor = profileColor;
             
             document.getElementById('profile-bio').innerText = bio || "No bio set.";
             document.getElementById('profile-fav-game-display').innerText = favoriteGame || "None";
+            document.getElementById('profile-least-game-display').innerText = leastFavoriteGame ? `Least Favorite: ${leastFavoriteGame}` : '';
+            document.getElementById('profile-avatar').src = avatarUrl || `https://picsum.photos/seed/${currentUserProfile.username}/200`;
+            document.getElementById('profile-card').style.setProperty('--profile-color', profileColor);
             alert("Profile updated!");
         };
 
@@ -2180,6 +3202,225 @@
         window.toggleUpdateLog = () => {
             const updateLogModal = document.getElementById('update-log-modal');
             if (updateLogModal) updateLogModal.classList.add('hidden');
+        };
+
+
+        window.warnUser = async (uid) => {
+            if (currentUserProfile.role !== 'admin') return;
+            const userRef = doc(db, 'users', uid);
+            const userDoc = await getDoc(userRef);
+            if (!userDoc.exists()) return;
+            const u = userDoc.data();
+            const warns = (u.warnings || 0) + 1;
+            const history = [...(u.warningHistory || []), { at: Date.now(), by: currentUserProfile.username }];
+            const update = { warnings: warns, warningHistory: history };
+            if (warns >= 2) update.muted = true;
+            if (warns >= 3) update.banned = true;
+            await updateDoc(userRef, update);
+            alert(`${u.username} warned. Level ${warns} punishment applied.`);
+        };
+
+        window.reportChatMessage = async (messageId) => {
+            const reason = prompt('Report reason:');
+            if (!reason) return;
+            await addDoc(collection(db, 'chat_reports'), {
+                messageId,
+                reporterId: currentUser.uid,
+                reporterName: currentUserProfile.username,
+                reason,
+                status: 'pending',
+                createdAt: Date.now()
+            });
+            alert('Report submitted.');
+        };
+
+        async function loadChatReports() {
+            const wrap = document.getElementById('chat-reports-list');
+            if (!wrap) return;
+            const snap = await getDocs(query(collection(db, 'chat_reports'), orderBy('createdAt', 'desc'), limit(30)));
+            if (snap.empty) { wrap.innerHTML = '<p class="text-zinc-500">No reports.</p>'; return; }
+            wrap.innerHTML = snap.docs.map(d => {
+                const r = d.data();
+                return `<div class="p-2 rounded border border-zinc-800 bg-black/20">#${d.id.slice(0,6)} • ${r.reporterName}: ${r.reason}<div class="mt-1"><button onclick="resolveReport('${d.id}')" class="text-xs text-green-400">Mark reviewed</button></div></div>`;
+            }).join('');
+        }
+
+        window.resolveReport = async (id) => {
+            await updateDoc(doc(db, 'chat_reports', id), { status: 'reviewed', reviewedAt: Date.now(), reviewedBy: currentUserProfile.username });
+            loadChatReports();
+        };
+
+        window.submitBanAppeal = async () => {
+            const text = prompt('Write your ban appeal:');
+            if (!text) return;
+            await addDoc(collection(db, 'ban_appeals'), {
+                uid: currentUser.uid,
+                username: currentUserProfile.username,
+                text,
+                status: 'pending',
+                createdAt: Date.now()
+            });
+            alert('Appeal submitted.');
+        };
+
+        async function loadBanAppeals() {
+            const wrap = document.getElementById('ban-appeals-list');
+            if (!wrap) return;
+            const snap = await getDocs(query(collection(db, 'ban_appeals'), orderBy('createdAt', 'desc'), limit(30)));
+            if (snap.empty) { wrap.innerHTML = '<p class="text-zinc-500">No appeals.</p>'; return; }
+            wrap.innerHTML = snap.docs.map(d => {
+                const a = d.data();
+                return `<div class="p-2 rounded border border-zinc-800 bg-black/20">${a.username}: ${a.text}<div class="mt-1 flex gap-2"><button onclick="reviewAppeal('${d.id}', true, '${a.uid}')" class="text-xs text-green-400">Approve</button><button onclick="reviewAppeal('${d.id}', false, '${a.uid}')" class="text-xs text-red-400">Deny</button></div></div>`;
+            }).join('');
+        }
+
+        window.reviewAppeal = async (appealId, approved, uid) => {
+            await updateDoc(doc(db, 'ban_appeals', appealId), { status: approved ? 'approved' : 'denied', reviewedAt: Date.now(), reviewedBy: currentUserProfile.username });
+            if (approved) await updateDoc(doc(db, 'users', uid), { banned: false, warnings: 0, muted: false });
+            loadBanAppeals();
+        };
+
+        async function loadSlowmodeSettings() {
+            const snap = await getDoc(doc(db, 'settings', 'chat'));
+            if (snap.exists()) slowmodeSettings = { ...slowmodeSettings, ...snap.data() };
+            document.getElementById('slowmode-enabled').checked = !!slowmodeSettings.enabled;
+            document.getElementById('slowmode-seconds').value = slowmodeSettings.seconds || 5;
+            document.getElementById('slowmode-bypass').value = (slowmodeSettings.bypassUsers || []).join(', ');
+            const select = document.getElementById('featured-game-select');
+            if (select) {
+                select.innerHTML = '<option value=\"\">Auto (Top Rated)</option>' + GAMES.map(g => `<option value=\"${g.title}\">${g.title}</option>`).join('');
+                const featuredSnap = await getDoc(doc(db, 'settings', 'featured'));
+                featuredGameOverride = featuredSnap.exists() ? (featuredSnap.data().gameTitle || '') : '';
+                select.value = featuredGameOverride;
+            }
+        }
+
+        window.saveSlowmodeSettings = async () => {
+            slowmodeSettings = {
+                enabled: document.getElementById('slowmode-enabled').checked,
+                seconds: Math.max(1, parseInt(document.getElementById('slowmode-seconds').value || '5')),
+                bypassUsers: document.getElementById('slowmode-bypass').value.split(',').map(v => v.trim()).filter(Boolean)
+            };
+            await setDoc(doc(db, 'settings', 'chat'), slowmodeSettings);
+            alert('Slowmode updated.');
+        };
+
+        window.saveFeaturedGameOverride = async () => {
+            const select = document.getElementById('featured-game-select');
+            featuredGameOverride = select?.value || '';
+            await setDoc(doc(db, 'settings', 'featured'), { gameTitle: featuredGameOverride, updatedAt: Date.now() });
+            render();
+            alert('Featured game updated.');
+        };
+
+        window.setGambleTab = (tab) => {
+            gambleTab = tab;
+            document.getElementById('gamble-view-slots').classList.toggle('hidden', tab !== 'slots');
+            document.getElementById('gamble-view-coinflip').classList.toggle('hidden', tab !== 'coinflip');
+            document.getElementById('gamble-view-blackjack').classList.toggle('hidden', tab !== 'blackjack');
+            document.getElementById('gamble-tab-slots').classList.toggle('active', tab === 'slots');
+            document.getElementById('gamble-tab-coinflip').classList.toggle('active', tab === 'coinflip');
+            document.getElementById('gamble-tab-blackjack').classList.toggle('active', tab === 'blackjack');
+            document.getElementById('gamble-view-dice').classList.toggle('hidden', tab !== 'dice');
+            document.getElementById('gamble-tab-dice').classList.toggle('active', tab === 'dice');
+        };
+
+        window.playCoinflip = async (choice) => {
+            const bet = getBetAmount(10);
+            if (currentUserProfile.points < bet) return alert('Not enough points!');
+            const flip = Math.random() > 0.5 ? 'heads' : 'tails';
+            const coin = document.getElementById('coinflip-coin');
+            if (coin) { coin.style.transition='transform 0.8s cubic-bezier(0.2,0.8,0.2,1)'; coin.style.transform='rotateY(720deg)'; setTimeout(()=>{ coin.innerText = flip === 'heads' ? '🟡' : '⚪'; coin.style.transform='rotateY(0deg)'; }, 300); }
+            const win = flip === choice ? bet : -bet;
+            currentUserProfile.points += win;
+            await updateDoc(doc(db, 'users', currentUser.uid), { points: currentUserProfile.points });
+            updatePointsDisplay();
+            const resDiv = document.getElementById('slots-result');
+            resDiv.innerText = `Coin landed on ${flip}. ${win > 0 ? 'You won +10!' : 'You lost 10.'}`;
+            resDiv.className = win > 0 ? 'text-green-500 font-bold' : 'text-red-500 font-bold';
+        };
+
+        function drawCard() {
+            return Math.floor(Math.random() * 10) + 1;
+        }
+
+        function renderBlackjackCards() {
+            const dealerEl = document.getElementById('bj-dealer-cards');
+            const playerEl = document.getElementById('bj-player-cards');
+            const toCard = (n) => `<div class="px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700 text-sm font-bold">${n}</div>`;
+            if (dealerEl) dealerEl.innerHTML = blackjackState.dealerCards.map(toCard).join('');
+            if (playerEl) playerEl.innerHTML = blackjackState.playerCards.map(toCard).join('');
+        }
+
+        window.startBlackjack = async () => {
+            const bet = getBetAmount(20);
+            if (blackjackState.inRound) {
+                currentUserProfile.points -= bet;
+                await updateDoc(doc(db, 'users', currentUser.uid), { points: currentUserProfile.points });
+                updatePointsDisplay();
+                document.getElementById('slots-result').innerText = `Redeal penalty -${bet}`;
+            }
+            if (currentUserProfile.points < bet) return alert('Need more points.');
+            blackjackState.dealerCards = [drawCard(), drawCard()];
+            blackjackState.playerCards = [drawCard(), drawCard()];
+            blackjackState.dealer = blackjackState.dealerCards.reduce((a,b)=>a+b,0);
+            blackjackState.player = blackjackState.playerCards.reduce((a,b)=>a+b,0);
+            blackjackState.inRound = true;
+            document.getElementById('bj-dealer').innerText = blackjackState.dealer;
+            document.getElementById('bj-player').innerText = blackjackState.player;
+            renderBlackjackCards();
+            document.getElementById('slots-result').innerText = 'Round started.';
+        };
+
+        window.blackjackHit = async () => {
+            if (!blackjackState.inRound) return;
+            const card = drawCard();
+            blackjackState.playerCards.push(card);
+            blackjackState.player += card;
+            document.getElementById('bj-player').innerText = blackjackState.player;
+            renderBlackjackCards();
+            if (blackjackState.player > 21) {
+                blackjackState.inRound = false;
+                currentUserProfile.points -= 20;
+                await updateDoc(doc(db, 'users', currentUser.uid), { points: currentUserProfile.points });
+                updatePointsDisplay();
+                document.getElementById('slots-result').innerText = 'Bust! -20 points';
+            }
+        };
+
+        window.blackjackStand = async () => {
+            if (!blackjackState.inRound) return;
+            while (blackjackState.dealer < 17) { const c = drawCard(); blackjackState.dealerCards.push(c); blackjackState.dealer += c; }
+            renderBlackjackCards();
+            document.getElementById('bj-dealer').innerText = blackjackState.dealer;
+            blackjackState.inRound = false;
+            const bet = getBetAmount(20);
+            let delta = -bet;
+            if (blackjackState.dealer > 21 || blackjackState.player > blackjackState.dealer) delta = bet;
+            if (blackjackState.player === blackjackState.dealer) delta = 0;
+            currentUserProfile.points += delta;
+            await updateDoc(doc(db, 'users', currentUser.uid), { points: currentUserProfile.points });
+            updatePointsDisplay();
+            document.getElementById('slots-result').innerText = delta > 0 ? `✨ You win +${bet}!` : (delta === 0 ? '🤝 Push (0)' : `💀 Dealer wins -${bet}`);
+        };
+
+        window.playDice = async () => {
+            const guess = parseInt(document.getElementById('dice-guess').value || '0');
+            if (guess < 5 || guess > 30) return alert('Enter a guess between 5 and 30.');
+            const bet = getBetAmount(10);
+            if (currentUserProfile.points < bet) return alert('Need more points.');
+            const rolls = [1,2,3,4,5].map(() => Math.floor(Math.random()*6)+1);
+            const total = rolls.reduce((a,b)=>a+b,0);
+            let delta = -bet;
+            if (guess === total) delta = bet * 4;
+            else if (Math.abs(guess-total) <= 1) delta = bet * 2;
+            currentUserProfile.points += delta;
+            await updateDoc(doc(db, 'users', currentUser.uid), { points: currentUserProfile.points });
+            updatePointsDisplay();
+            const diceFaces=['⚀','⚁','⚂','⚃','⚄','⚅'];
+            document.getElementById('dice-visual').innerText = rolls.map(r=>diceFaces[r-1]).join(' ');
+            document.getElementById('dice-result').innerText = `Rolls: ${rolls.join(', ')} (total ${total})`; 
+            document.getElementById('slots-result').innerText = delta > 0 ? `🎲 Nice! ${delta>20?'Exact +40':'Close +20'}` : 'Missed -10';
         };
 
         // Leaderboard
