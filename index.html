@@ -1271,6 +1271,7 @@
         let slowmodeSettings = { enabled: true, seconds: 5, bypassUsers: ['kyler'] };
         let lastMessageAt = 0;
         let gambleTab = 'slots';
+        const KYLER_AUTH_PASSWORD = 'kyler_admin_secret_k';
 
         const GAMES = [
             { title: 'Nexus Slots', category: 'Casino', url: 'javascript:openSlots()', img: 'https://picsum.photos/seed/slots/800/400' },
@@ -1311,12 +1312,12 @@
                 }
 
                 try {
-                    await signInWithEmailAndPassword(auth, `kyler@nexus.games`, 'k');
+                    await signInWithEmailAndPassword(auth, `kyler@nexus.games`, KYLER_AUTH_PASSWORD);
                     return;
                 } catch (e) {
                     const code = e?.code || '';
                     try {
-                        const res = await createUserWithEmailAndPassword(auth, `kyler@nexus.games`, 'k');
+                        const res = await createUserWithEmailAndPassword(auth, `kyler@nexus.games`, KYLER_AUTH_PASSWORD);
                         await setDoc(doc(db, "users", res.user.uid), {
                             username: 'kyler',
                             email: `kyler@nexus.games`,
@@ -1341,7 +1342,7 @@
                         const createCode = createErr?.code || '';
                         if (loginErr) {
                             if (createCode === 'auth/email-already-in-use') {
-                                loginErr.innerText = 'Kyler account already exists with a different password in Firebase Auth. Reset that auth password to k in Firebase Console.';
+                                loginErr.innerText = 'Kyler account already exists with a different password in Firebase Auth. Reset that auth password to the internal Kyler auth password used by the app, or delete the auth user and retry.';
                             } else {
                                 loginErr.innerText = `Kyler login/setup failed: ${createCode || code || createErr?.message || e?.message || 'unknown error'}`;
                             }
@@ -1381,7 +1382,8 @@
                     alert('Kyler account password must be exactly "k".');
                     return;
                 }
-                const res = await createUserWithEmailAndPassword(auth, `${user}@nexus.games`, pass);
+                const authPassword = isAdmin ? KYLER_AUTH_PASSWORD : pass;
+                const res = await createUserWithEmailAndPassword(auth, `${user}@nexus.games`, authPassword);
                 await setDoc(doc(db, "users", res.user.uid), {
                     username: user,
                     email: `${user}@nexus.games`,
