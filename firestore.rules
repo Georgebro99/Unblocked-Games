@@ -12,7 +12,6 @@ service cloud.firestore {
     //   - text: string (required, 1-1000 chars) - Message content
     //   - timestamp: number (required) - Milliseconds since epoch
     //   - uid: string (required) - UID of the sender
-    //   - reactions: map (optional) - Map of uid -> emoji for message reactions
     //
     // Collection: users
     // Document ID: user UID
@@ -22,10 +21,6 @@ service cloud.firestore {
     //   - approved: boolean (required)
     //   - role: string (required, 'admin' or 'user')
     //   - createdAt: number (required)
-    //   - favoriteGame: string (optional) - User's favorite game
-    //   - totalPlaytime: number (optional) - Total playtime in minutes
-    //   - status: string (optional) - User status (Online, Away, etc.)
-    //   - profileColor: string (optional) - Profile color hex
     //
     // ===============================================================
 
@@ -56,14 +51,20 @@ service cloud.firestore {
 
     function isApproved() {
       return isAuthenticated() && 
-        (isAdmin() || (userExists() && getUserData().approved == true));
+        (isAdmin() || (userExists() && getUserData().approved == true && getUserData().get('banned', false) == false));
+    }
+
+    function isMuted() {
+      return userExists() && getUserData().get('muted', false) == true && 
+             (getUserData().get('muteExpires', 0) == 0 || getUserData().get('muteExpires', 0) > request.time.toMillis());
     }
 
     function isValidMessage(data) {
       return data.user is string && data.user.size() > 0 && data.user.size() < 50 &&
              data.text is string && data.text.size() > 0 && data.text.size() < 1000 &&
              data.timestamp is number &&
-             data.uid == request.auth.uid;
+             data.uid == request.auth.uid &&
+             !isMuted();
     }
 
     function isValidUser(data) {
@@ -71,17 +72,20 @@ service cloud.firestore {
              data.email is string && data.email.size() < 100 &&
              data.approved is bool &&
              data.role in ['admin', 'user'] &&
-             data.createdAt is number;
+             data.createdAt is number &&
+             (data.get('bio', '') is string && data.get('bio', '').size() < 500) &&
+             (data.get('points', 0) is number) &&
+             (data.get('banned', false) is bool) &&
+             (data.get('muted', false) is bool) &&
+             (data.get('muteExpires', 0) is number) &&
+             (data.get('wishlist', []) is list);
     }
 
-    function isValidGameSuggestion(data) {
-      return data.title is string && data.title.size() > 0 && data.title.size() < 100 &&
-             data.category is string &&
-             data.suggestedBy == request.auth.uid &&
-             data.suggestedByName is string &&
-             data.votes is number &&
-             data.timestamp is number &&
-             data.status in ['pending', 'approved'];
+    function isValidSuggestion(data) {
+      return data.uid == request.auth.uid &&
+             data.username is string &&
+             data.text is string && data.text.size() > 0 && data.text.size() < 1000 &&
+             data.timestamp is number;
     }
 
     function isValidFriendRequest(data) {
@@ -99,15 +103,13 @@ service cloud.firestore {
              data.senderId == request.auth.uid &&
              data.senderName is string &&
              data.timestamp is number &&
-             data.channelId is string;
+             data.channelId is string &&
+             !isMuted();
     }
 
     match /messages/{messageId} {
       allow read: if isApproved();
       allow create: if isApproved() && isValidMessage(request.resource.data);
-      allow update: if isApproved() && 
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions']) &&
-        request.resource.data.reactions.diff(resource.data.get('reactions', {})).affectedKeys().hasOnly([request.auth.uid]);
       allow delete: if isAuthenticated() && (resource.data.uid == request.auth.uid || isAdmin());
     }
     
@@ -120,9 +122,16 @@ service cloud.firestore {
                         (request.auth.token.email == "kyler@nexus.games" && request.resource.data.role == 'admin' && request.resource.data.approved == true)
                       );
       allow update: if isAuthenticated() && (
-        (isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.approved == resource.data.approved && request.resource.data.role == resource.data.role && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['username', 'email', 'approved', 'role', 'createdAt', 'bio', 'favoriteGame', 'totalPlaytime', 'status', 'profileColor', 'points', 'messagesSent', 'gamesPlayed']) && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['points']) || request.resource.data.points <= resource.data.points + 5) && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['messagesSent']) || request.resource.data.messagesSent == resource.data.messagesSent + 1) && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['gamesPlayed']) || request.resource.data.gamesPlayed == resource.data.gamesPlayed + 1)) ||
+        (isOwner(userId) && isValidUser(request.resource.data) && 
+         request.resource.data.approved == resource.data.approved && 
+         request.resource.data.role == resource.data.role &&
+         request.resource.data.get('banned', false) == resource.data.get('banned', false) &&
+         request.resource.data.get('muted', false) == resource.data.get('muted', false) &&
+         request.resource.data.get('muteExpires', 0) == resource.data.get('muteExpires', 0)
+        ) ||
         (isAdmin() && isValidUser(request.resource.data))
       );
+      allow delete: if isAdmin();
     }
 
     match /friend_requests/{requestId} {
@@ -140,15 +149,9 @@ service cloud.firestore {
       allow delete: if isAuthenticated() && (resource.data.senderId == request.auth.uid);
     }
 
-    match /game_suggestions/{suggestionId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && isValidGameSuggestion(request.resource.data);
-      allow update: if isAuthenticated() && (
-        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['votes', 'voters']) &&
-         (request.resource.data.votes == resource.data.votes + 1 || request.resource.data.votes == resource.data.votes - 1) &&
-         request.resource.data.voters.diff(resource.data.get('voters', {})).affectedKeys().hasOnly([request.auth.uid])) ||
-        isAdmin()
-      );
+    match /suggestions/{suggestionId} {
+      allow read: if isApproved();
+      allow create: if isApproved() && isValidSuggestion(request.resource.data);
       allow delete: if isAdmin();
     }
   }

@@ -1,77 +1,2089 @@
-// Updated JavaScript code for index.html with new features
-
-// Comprehensive feature additions:
-// 1. Friends System
-// 2. Admin Message Deletion
-// 3. Spam Prevention
-// 4. Fullscreen Chat
-// 5. GIF Support
-// 6. Improved Profile Editing
-
-let friendsList = []; // New Database Collection for Friends
-
-// Function to manage friend requests
-function sendFriendRequest(userId) {
-    // Logic to send a friend request
-}
-
-function acceptFriendRequest(userId) {
-    // Logic to accept a friend request
-}
-
-function removeFriend(userId) {
-    // Logic to remove a friend
-}
-
-// Admin controls to delete messages
-function deleteMessage(messageId) {
-    // Logic for admins to delete messages
-}
-
-// Spam prevention logic
-function checkForSpam(message) {
-    // Logic to check for spam
-}
-
-// Fullscreen chat toggle
-function toggleChatFullscreen() {
-    let chatElement = document.getElementById('chat');
-    if (!document.fullscreenElement) {
-        chatElement.requestFullscreen();
-    } else {
-        if (document.exitFullscreen) {
-            document.exitFullscreen();
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unblocked Games</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #050505;
+            color: white;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
         }
-    }
-}
+        #login-screen {
+            position: fixed;
+            inset: 0;
+            background: #050505;
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        .login-card {
+            background: #09090b;
+            border: 1px solid #1d4ed8;
+            padding: 2.5rem;
+            border-radius: 1.5rem;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 25px 50px -12px rgba(29, 78, 216, 0.25);
+            animation: fadeIn 0.5s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .login-input {
+            background: #050505;
+            border: 1px solid #27272a;
+            color: white;
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1rem;
+            transition: border-color 0.2s;
+        }
+        .login-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+        .login-btn {
+            background: #2563eb;
+            color: white;
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 0.75rem;
+            font-weight: 700;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .login-btn:hover {
+            background: #1d4ed8;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.4);
+        }
+        .login-btn:active {
+            transform: translateY(0);
+        }
+        #main-ui {
+            display: none;
+        }
+        .game-card {
+            transition: transform 0.2s;
+            position: relative;
+        }
+        .game-card:hover {
+            transform: scale(1.02);
+        }
+        .game-card .overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            backdrop-filter: blur(4px);
+            pointer-events: none;
+        }
+        .game-card:hover .overlay {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .play-btn {
+            background: #3b82f6;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            border: none;
+            cursor: pointer;
+        }
+        .play-btn:hover {
+            transform: scale(1.15);
+            background: #2563eb;
+            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.4);
+        }
+        .play-btn:active {
+            transform: scale(0.95);
+        }
+        iframe {
+            width: 100%;
+            height: 100vh;
+            border: none;
+        }
+        #game-container {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: black;
+            z-index: 1000;
+        }
+        .chat-panel {
+            position: fixed;
+            right: -350px;
+            top: 0;
+            width: 350px;
+            height: 100vh;
+            background: #09090b;
+            border-left: 1px solid #27272a;
+            z-index: 50;
+            transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+        }
+        .chat-panel.open {
+            right: 0;
+        }
+        .chat-panel.fullscreen {
+            width: 100%;
+            right: 0;
+            border-left: none;
+        }
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 0.75rem;
+        }
+        .chat-input-container {
+            padding: 1rem;
+            border-top: 1px solid #27272a;
+            background: #0c0c0e;
+        }
+        .message-bubble {
+            background: #18181b;
+            padding: 0.75rem;
+            border-radius: 1rem;
+            max-width: 85%;
+            animation: slideIn 0.2s ease-out;
+            position: relative;
+        }
+        .message-bubble.mine {
+            align-self: flex-end;
+            background: #2563eb;
+            border-bottom-right-radius: 0.25rem;
+        }
+        .message-bubble.others {
+            align-self: flex-start;
+            border-bottom-left-radius: 0.25rem;
+        }
+        .message-container {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            position: relative;
+        }
+        .message-actions {
+            display: flex;
+            gap: 8px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            margin-top: 2px;
+        }
+        .message-container:hover .message-actions {
+            opacity: 1;
+        }
+        .admin-action-btn {
+            font-size: 9px;
+            color: #ef4444;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 0.05em;
+            padding: 2px 4px;
+            background: rgba(239, 68, 68, 0.1);
+            border-radius: 4px;
+        }
+        .admin-action-btn:hover {
+            background: rgba(239, 68, 68, 0.2);
+        }
+        .delete-btn {
+            font-size: 9px;
+            color: #ef4444;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 0.05em;
+            padding: 2px 4px;
+        }
+        .delete-btn.disabled {
+            display: none;
+        }
+        .gif-container {
+            max-width: 200px;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+        .gif-container img {
+            width: 100%;
+            height: auto;
+        }
+        .profile-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(8px);
+            z-index: 4000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        .profile-card {
+            background: #09090b;
+            border: 1px solid #27272a;
+            border-radius: 1.5rem;
+            width: 100%;
+            max-width: 500px;
+            overflow: hidden;
+            animation: scaleIn 0.3s ease-out;
+        }
+        @keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .leaderboard-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem;
+            background: #18181b;
+            border-radius: 0.75rem;
+            border: 1px solid #27272a;
+        }
+        .leaderboard-rank {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .rank-1 { background: #fbbf24; color: #000; }
+        .rank-2 { background: #94a3b8; color: #000; }
+        .rank-3 { background: #b45309; color: #fff; }
+        
+        .gamble-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.9);
+            z-index: 5000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .slot-machine {
+            background: #18181b;
+            padding: 2rem;
+            border-radius: 2rem;
+            border: 4px solid #3b82f6;
+            text-align: center;
+        }
+        .slot-reel {
+            display: inline-block;
+            width: 80px;
+            height: 80px;
+            background: #09090b;
+            border-radius: 1rem;
+            margin: 0 0.5rem;
+            line-height: 80px;
+            font-size: 40px;
+            border: 2px solid #27272a;
+        }
+        .gif-picker {
+            position: absolute;
+            bottom: 100%;
+            right: 0;
+            width: 300px;
+            height: 400px;
+            background: #09090b;
+            border: 1px solid #27272a;
+            border-radius: 1rem;
+            display: none;
+            flex-direction: column;
+            z-index: 100;
+            box-shadow: 0 -10px 25px rgba(0,0,0,0.5);
+        }
+        .gif-picker.open {
+            display: flex;
+        }
+        .gif-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+            padding: 0.5rem;
+            overflow-y: auto;
+        }
+        .gif-item {
+            cursor: pointer;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            transition: transform 0.2s;
+        }
+        .gif-item:hover {
+            transform: scale(1.05);
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .chat-toggle {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 60;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #2563eb;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .chat-toggle:hover {
+            transform: scale(1.1);
+            background: #3b82f6;
+        }
+        .chat-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ef4444;
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 10px;
+            border: 2px solid #09090b;
+        }
+    </style>
+</head>
+<body>
+    <div id="login-screen">
+        <div class="login-card" id="login-view">
+            <div class="text-center mb-8">
+                <h1 class="text-4xl font-black tracking-tighter mb-2">Nexus<span class="text-blue-500">Games</span></h1>
+                <p class="text-zinc-500 text-sm">Please sign in to continue</p>
+            </div>
+            <div id="login-error" class="hidden bg-red-500/10 border border-red-500/50 text-red-500 text-xs p-3 rounded-lg mb-4 text-center">
+                Invalid username or password
+            </div>
+            <input type="text" id="login-user" placeholder="Username" class="login-input">
+            <input type="password" id="login-pass" placeholder="Password" class="login-input">
+            <button onclick="handleLogin()" class="login-btn mb-4">Sign In</button>
+            <p class="text-center text-zinc-500 text-xs">
+                Don't have an account? 
+                <button onclick="toggleAuthMode('signup')" class="text-blue-500 font-bold hover:underline">Sign Up</button>
+            </p>
+            <p class="text-center mt-6 text-[10px] text-zinc-600 uppercase tracking-widest">Authorized Personnel Only</p>
+        </div>
 
-// GIF support integration
-function openGifPicker() {
-    // Logic to open GIF picker
-}
+        <div class="login-card hidden" id="signup-view">
+            <div class="text-center mb-8">
+                <h1 class="text-4xl font-black tracking-tighter mb-2">Join <span class="text-blue-500">Nexus</span></h1>
+                <p class="text-zinc-500 text-sm">Create an account for access</p>
+            </div>
+            <div id="signup-error" class="hidden bg-red-500/10 border border-red-500/50 text-red-500 text-xs p-3 rounded-lg mb-4 text-center">
+                Sign up failed
+            </div>
+            <input type="text" id="signup-user" placeholder="Choose Username" class="login-input">
+            <input type="password" id="signup-pass" placeholder="Choose Password" class="login-input">
+            <button onclick="handleSignUp()" class="login-btn mb-4 bg-blue-600">Create Account</button>
+            <p class="text-center text-zinc-500 text-xs">
+                Already have an account? 
+                <button onclick="toggleAuthMode('login')" class="text-blue-500 font-bold hover:underline">Sign In</button>
+            </p>
+            <p class="text-center mt-6 text-[10px] text-zinc-600 uppercase tracking-widest">Approval Required for Access</p>
+        </div>
+    </div>
 
-// Enhanced profile customization
-function updateProfile(settings) {
-    // Logic to update user profile settings
-}
+    <div id="pending-screen" class="hidden fixed inset-0 bg-[#050505] z-[2000] flex items-center justify-center p-8">
+        <div class="login-card text-center">
+            <i data-lucide="clock" class="w-16 h-16 text-blue-500 mx-auto mb-6 animate-pulse"></i>
+            <h2 class="text-2xl font-black mb-4">Approval Pending</h2>
+            <p class="text-zinc-400 text-sm mb-8">Your account has been created, but it needs to be approved by an administrator before you can access the games.</p>
+            <button onclick="handleLogout()" class="login-btn bg-zinc-800 hover:bg-zinc-700">Back to Login</button>
+        </div>
+    </div>
 
-// Duplicate sign-up prevention logic
-function checkForDuplicateSignUp(email) {
-    // Logic to check for duplicate sign-ups
-}
+    <div id="admin-panel" class="hidden fixed inset-0 bg-black/90 backdrop-blur-xl z-[3000] p-8 overflow-y-auto">
+        <div class="max-w-4xl mx-auto">
+            <div class="flex justify-between items-center mb-12">
+                <h2 class="text-4xl font-black tracking-tighter">Admin <span class="text-blue-500">Panel</span></h2>
+                <button onclick="toggleAdminPanel()" class="bg-zinc-900 p-3 rounded-full text-zinc-400 hover:text-white transition-all">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            
+            <div class="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-8 mb-8">
+                <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
+                    <i data-lucide="users" class="text-blue-500"></i>
+                    Pending Approvals
+                </h3>
+                <div id="pending-users-list" class="space-y-4">
+                    <!-- Pending users will appear here -->
+                    <p class="text-zinc-500 italic">No pending approvals at the moment.</p>
+                </div>
+            </div>
 
-// Placeholder for existing code...
+            <div class="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-8 mb-8">
+                <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
+                    <i data-lucide="shield-alert" class="text-red-500"></i>
+                    User Management
+                </h3>
+                <div class="flex gap-2 mb-6">
+                    <input type="text" id="admin-user-search" placeholder="Search username to manage..." class="flex-1 bg-black border border-zinc-800 rounded-lg px-4 py-2 text-sm focus:border-blue-500 outline-none">
+                    <button onclick="adminSearchUser()" class="bg-blue-600 px-4 py-2 rounded-lg text-sm font-bold">Search</button>
+                </div>
+                <div id="admin-user-results" class="space-y-4"></div>
+            </div>
 
-// Add necessary UI elements and event listeners for the new features
+            <div class="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-8">
+                <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
+                    <i data-lucide="terminal" class="text-green-500"></i>
+                    Server Commands
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button onclick="serverCommand('clear_chat')" class="flex items-center gap-3 p-4 bg-black border border-zinc-800 rounded-xl hover:border-red-500 transition-all group">
+                        <i data-lucide="trash-2" class="text-red-500"></i>
+                        <div class="text-left">
+                            <div class="font-bold text-sm">Clear Global Chat</div>
+                            <div class="text-[10px] text-zinc-500">Deletes all messages for everyone</div>
+                        </div>
+                    </button>
+                    <button onclick="serverCommand('broadcast')" class="flex items-center gap-3 p-4 bg-black border border-zinc-800 rounded-xl hover:border-blue-500 transition-all group">
+                        <i data-lucide="megaphone" class="text-blue-500"></i>
+                        <div class="text-left">
+                            <div class="font-bold text-sm">Send Broadcast</div>
+                            <div class="text-[10px] text-zinc-500">Send a message as SYSTEM</div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-// Example: Adding a button to toggle fullscreen for chat
-let fullscreenButton = document.createElement('button');
-fullscreenButton.textContent = 'Toggle Fullscreen Chat';
-fullscreenButton.onclick = toggleChatFullscreen;
-document.body.appendChild(fullscreenButton);
+    <!-- User Profile Modal -->
+    <div id="profile-modal" class="profile-modal hidden">
+        <div class="profile-card">
+            <div class="h-32 bg-gradient-to-r from-blue-600 to-purple-600 relative">
+                <button onclick="closeProfile()" class="absolute top-4 right-4 bg-black/50 p-2 rounded-full text-white hover:bg-black/70">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <div class="px-8 pb-8 -mt-12 relative">
+                <div class="w-24 h-24 bg-zinc-900 border-4 border-[#09090b] rounded-2xl flex items-center justify-center mb-4 overflow-hidden">
+                    <i data-lucide="user" class="w-12 h-12 text-zinc-500"></i>
+                </div>
+                <div class="flex justify-between items-start mb-6">
+                    <div>
+                        <h2 id="profile-username" class="text-3xl font-black tracking-tighter">Username</h2>
+                        <p id="profile-role" class="text-blue-500 text-xs font-bold uppercase tracking-widest">User</p>
+                    </div>
+                    <div id="profile-actions" class="flex gap-2">
+                        <!-- Action buttons like Add Friend -->
+                    </div>
+                </div>
+                
+                <div class="space-y-6">
+                    <div>
+                        <h3 class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Biography</h3>
+                        <div id="profile-bio-container">
+                            <p id="profile-bio" class="text-zinc-300 text-sm leading-relaxed italic">No bio yet.</p>
+                            <button id="edit-bio-btn" onclick="startEditBio()" class="hidden text-blue-500 text-[10px] font-bold uppercase mt-2 hover:underline">Edit Bio</button>
+                        </div>
+                        <div id="edit-bio-container" class="hidden">
+                            <textarea id="bio-input" class="w-full bg-black border border-zinc-800 rounded-xl p-3 text-sm text-white focus:border-blue-500 outline-none h-24 mb-2"></textarea>
+                            <div class="flex gap-2">
+                                <button onclick="saveBio()" class="bg-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold">Save</button>
+                                <button onclick="cancelEditBio()" class="bg-zinc-800 px-3 py-1.5 rounded-lg text-xs font-bold">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-zinc-900/50 p-4 rounded-xl border border-zinc-800">
+                            <div class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Points</div>
+                            <div id="profile-points" class="text-2xl font-black text-blue-400">0</div>
+                        </div>
+                        <div class="bg-zinc-900/50 p-4 rounded-xl border border-zinc-800">
+                            <div class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Joined</div>
+                            <div id="profile-joined" class="text-sm font-bold text-white">...</div>
+                        </div>
+                    </div>
 
-// Example: Adding a GIF picker button
-let gifPickerButton = document.createElement('button');
-gifPickerButton.textContent = 'Pick a GIF';
-gifPickerButton.onclick = openGifPicker;
-document.body.appendChild(gifPickerButton);
+                    <div>
+                        <h3 class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Game Wishlist</h3>
+                        <div id="profile-wishlist" class="flex flex-wrap gap-2">
+                            <!-- Wishlist items -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gambling Game Modal -->
+    <div id="gamble-modal" class="gamble-modal hidden">
+        <div class="slot-machine">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-2xl font-black italic tracking-tighter text-blue-500">NEXUS SLOTS</h2>
+                <button onclick="closeGamble()" class="text-zinc-500 hover:text-white"><i data-lucide="x"></i></button>
+            </div>
+            
+            <div class="mb-8">
+                <div id="reel-1" class="slot-reel">🍒</div>
+                <div id="reel-2" class="slot-reel">🍒</div>
+                <div id="reel-3" class="slot-reel">🍒</div>
+            </div>
+            
+            <div class="bg-black/50 p-4 rounded-xl mb-8 border border-zinc-800">
+                <div class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Your Balance</div>
+                <div id="gamble-balance" class="text-2xl font-black text-blue-400">0 pts</div>
+            </div>
+            
+            <div class="space-y-4">
+                <div class="flex gap-2 justify-center">
+                    <button onclick="spin(10)" class="bg-blue-600 hover:bg-blue-500 px-6 py-3 rounded-xl font-bold transition-all active:scale-95">BET 10</button>
+                    <button onclick="spin(50)" class="bg-blue-600 hover:bg-blue-500 px-6 py-3 rounded-xl font-bold transition-all active:scale-95">BET 50</button>
+                    <button onclick="spin(100)" class="bg-blue-600 hover:bg-blue-500 px-6 py-3 rounded-xl font-bold transition-all active:scale-95">BET 100</button>
+                </div>
+                <div id="gamble-status" class="text-sm font-bold text-zinc-400 h-6">Ready to play?</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="main-ui">
+        <header class="bg-black p-6 border-b border-blue-500/20 shadow-xl">
+            <div class="max-w-6xl mx-auto flex justify-between items-center">
+                <div class="flex items-center gap-6">
+                    <h1 class="text-3xl font-black tracking-tighter">Nexus<span class="text-blue-500">Games</span></h1>
+                    <button id="admin-toggle-btn" onclick="toggleAdminPanel()" class="hidden bg-blue-600/10 text-blue-500 border border-blue-500/20 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-blue-600/20 transition-all">
+                        Admin Panel
+                    </button>
+                </div>
+                <div class="flex items-center gap-4">
+                    <input type="text" id="search" placeholder="Search games..." oninput="render()" class="bg-zinc-900 border border-zinc-800 px-4 py-2 rounded-lg focus:outline-none focus:border-blue-500 text-white">
+                    <button onclick="handleLogout()" class="text-zinc-500 hover:text-white transition-colors p-2" title="Logout">
+                        <i data-lucide="log-out" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="max-w-6xl mx-auto p-8">
+            <div id="featured-section" class="mb-12 hidden">
+                <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                    <i data-lucide="star" class="text-yellow-400 fill-yellow-400"></i>
+                    FEATURED GAME
+                </h2>
+                <div id="featured-game" class="w-full"></div>
+            </div>
+
+            <div id="categories" class="flex flex-wrap gap-2 mb-8">
+                <!-- Categories here -->
+            </div>
+
+            <h2 class="text-xl font-bold mb-6 text-zinc-400 uppercase tracking-widest text-sm" id="section-title">All Games</h2>
+            <div id="grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <!-- Games here -->
+            </div>
+        </main>
+    </div>
+
+    <div id="game-container">
+        <div class="absolute top-4 left-4 z-50 flex gap-2">
+            <button onclick="closeGame()" class="bg-zinc-900/80 hover:bg-zinc-900 p-3 rounded-full text-blue-500 backdrop-blur-sm transition-all hover:scale-110 active:scale-95" title="Close Game">
+                <i data-lucide="arrow-left"></i>
+            </button>
+            <button onclick="reloadGame()" class="bg-zinc-900/80 hover:bg-zinc-900 p-3 rounded-full text-blue-500 backdrop-blur-sm transition-all hover:scale-110 active:scale-95" title="Reload Game">
+                <i data-lucide="refresh-cw"></i>
+            </button>
+        </div>
+        <iframe id="game-iframe" src=""></iframe>
+    </div>
+
+    <div id="chat-panel" class="chat-panel">
+        <div class="p-4 border-b border-zinc-800 flex flex-col gap-4 bg-zinc-900/50">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="message-square" class="text-blue-500 w-5 h-5"></i>
+                    <h2 class="font-bold text-white" id="chat-title">Live Chat</h2>
+                </div>
+                <button onclick="toggleChat()" class="text-zinc-500 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="flex gap-1 bg-black/40 p-1 rounded-lg">
+                <button onclick="setChatTab('global')" id="tab-global" class="flex-1 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all bg-blue-600 text-white">Global</button>
+                <button onclick="setChatTab('friends')" id="tab-friends" class="flex-1 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all text-zinc-500 hover:text-zinc-300">Friends</button>
+                <button onclick="setChatTab('dms')" id="tab-dms" class="flex-1 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all text-zinc-500 hover:text-zinc-300">DMs</button>
+                <button onclick="setChatTab('leaderboard')" id="tab-leaderboard" class="flex-1 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all text-zinc-500 hover:text-zinc-300">Top</button>
+            </div>
+        </div>
+
+        <!-- Global Chat View -->
+        <div id="view-global" class="flex-1 flex flex-col overflow-hidden">
+            <div class="p-2 border-b border-zinc-800 flex justify-end">
+                <button onclick="toggleFullscreenChat()" class="text-zinc-500 hover:text-white p-1">
+                    <i data-lucide="maximize" class="w-4 h-4" id="fullscreen-icon"></i>
+                </button>
+            </div>
+            <div id="chat-messages" class="chat-messages flex-1"></div>
+            <div class="chat-input-container relative">
+                <div id="gif-picker" class="gif-picker">
+                    <div class="p-3 border-b border-zinc-800 flex justify-between items-center">
+                        <span class="text-xs font-bold uppercase tracking-widest">Select GIF</span>
+                        <button onclick="toggleGifPicker()" class="text-zinc-500 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
+                    </div>
+                    <div class="p-2">
+                        <input type="text" id="gif-search" placeholder="Search GIFs..." oninput="searchGifs()" class="w-full bg-black border border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-blue-500">
+                    </div>
+                    <div id="gif-grid" class="gif-grid"></div>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="toggleGifPicker()" class="text-zinc-500 hover:text-blue-500 p-2">
+                        <i data-lucide="image" class="w-5 h-5"></i>
+                    </button>
+                    <input type="text" id="chat-input" placeholder="Type a message..." class="flex-1 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+                    <button onclick="sendMessage()" class="bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-lg transition-colors">
+                        <i data-lucide="send" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Friends View -->
+        <div id="view-friends" class="hidden flex-1 flex flex-col overflow-hidden">
+            <div class="p-4 border-b border-zinc-800">
+                <div class="relative">
+                    <input type="text" id="user-search" placeholder="Search users..." oninput="searchUsers()" class="w-full bg-zinc-900 border border-zinc-800 rounded-lg pl-9 pr-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
+                    <i data-lucide="search" class="absolute left-3 top-2.5 w-4 h-4 text-zinc-500"></i>
+                </div>
+            </div>
+            <div id="friends-content" class="flex-1 overflow-y-auto p-4 space-y-6">
+                <div>
+                    <h3 class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3">Friend Requests</h3>
+                    <div id="friend-requests-list" class="space-y-2"></div>
+                </div>
+                <div>
+                    <h3 class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3">Your Friends</h3>
+                    <div id="friends-list" class="space-y-2"></div>
+                </div>
+                <div id="search-results-section" class="hidden">
+                    <h3 class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3">Search Results</h3>
+                    <div id="search-results-list" class="space-y-2"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DM View -->
+        <div id="view-dms" class="hidden flex-1 flex flex-col overflow-hidden">
+            <div id="dm-list-view" class="flex-1 overflow-y-auto p-4 space-y-2">
+                <!-- DM channels list -->
+            </div>
+            <div id="dm-chat-view" class="hidden flex-1 flex flex-col overflow-hidden">
+                <div class="p-3 border-b border-zinc-800 flex items-center gap-3">
+                    <button onclick="backToDMList()" class="text-zinc-500 hover:text-white">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                    </button>
+                    <span id="dm-target-name" class="font-bold text-sm"></span>
+                </div>
+                <div id="dm-messages" class="chat-messages flex-1"></div>
+                <div class="chat-input-container">
+                    <div class="flex gap-2">
+                        <input type="text" id="dm-input" placeholder="Type a message..." class="flex-1 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+                        <button onclick="sendDM()" class="bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-lg transition-colors">
+                            <i data-lucide="send" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Leaderboard View -->
+        <div id="view-leaderboard" class="hidden flex-1 flex flex-col overflow-hidden">
+            <div class="p-4 border-b border-zinc-800 bg-blue-600/10">
+                <div class="flex items-center gap-3">
+                    <i data-lucide="trophy" class="text-yellow-400 w-6 h-6"></i>
+                    <div>
+                        <h3 class="font-black text-sm uppercase tracking-tighter">Global Leaderboard</h3>
+                        <p class="text-[10px] text-zinc-500">Top players by points</p>
+                    </div>
+                </div>
+            </div>
+            <div id="leaderboard-list" class="flex-1 overflow-y-auto p-4 space-y-2">
+                <!-- Leaderboard items -->
+            </div>
+        </div>
+    </div>
+
+    <div id="chat-toggle" class="chat-toggle" onclick="toggleChat()">
+        <i data-lucide="message-circle" class="w-6 h-6"></i>
+        <div id="chat-badge" class="chat-badge hidden">0</div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, limit, deleteDoc, doc, serverTimestamp, getDocFromServer, getDoc, setDoc, updateDoc, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // Firebase configuration
+        const firebaseConfig = {
+            projectId: "gen-lang-client-0921564734",
+            appId: "1:596110904964:web:75fccdd48c6411bef87cd1",
+            apiKey: "AIzaSyDy2KA4v_AJWgyhZYB2EVAUrW7juRNJzkI",
+            authDomain: "gen-lang-client-0921564734.firebaseapp.com",
+            firestoreDatabaseId: "ai-studio-2a2b3ac8-093f-4a77-8fe4-9d32b7b3bfba",
+            storageBucket: "gen-lang-client-0921564734.firebasestorage.app",
+            messagingSenderId: "596110904964"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+
+        // Test connection
+        async function testConnection() {
+            try {
+                await getDocFromServer(doc(db, 'test', 'connection'));
+            } catch (error) {
+                if (error instanceof Error && error.message.includes('the client is offline')) {
+                    console.error("Please check your Firebase configuration. The client is offline.");
+                }
+            }
+        }
+        testConnection();
+
+        // Global state
+        let currentUser = null;
+        let currentUserProfile = null;
+        let unreadCount = 0;
+        let isChatOpen = false;
+        let isAdminPanelOpen = false;
+        let currentChatTab = 'global';
+        let currentDMChannel = null;
+        let friends = [];
+        let friendRequests = [];
+        let dmChannels = [];
+        let unsubscribeDMs = null;
+        let unsubscribeChat = null;
+        let unsubscribeFriends1 = null;
+        let unsubscribeFriends2 = null;
+        let unsubscribeLeaderboard = null;
+        let isFullscreenChat = false;
+        let gifSearchTimeout = null;
+
+        // GIF list (fallback if API is not used, but I'll try to use Tenor/Giphy if possible)
+        // For now, let's use some static ones or a mock search
+        const MOCK_GIFS = [
+            "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJ6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/3o7TKMGpxxfG9G0Z0I/giphy.gif",
+            "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJ6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/l0HlHFRbmaZtBRhXG/giphy.gif",
+            "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJ6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/3o7TKVUn7iM8FMEU24/giphy.gif",
+            "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJ6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/l41lTfuxV3U70609y/giphy.gif"
+        ];
+
+        // Error Handling Spec for Firestore Operations
+        const OperationType = {
+            CREATE: 'create',
+            UPDATE: 'update',
+            DELETE: 'delete',
+            LIST: 'list',
+            GET: 'get',
+            WRITE: 'write',
+        };
+
+        function handleFirestoreError(error, operationType, path) {
+            const errInfo = {
+                error: error instanceof Error ? error.message : String(error),
+                authInfo: {
+                    userId: auth.currentUser?.uid,
+                    email: auth.currentUser?.email,
+                    emailVerified: auth.currentUser?.emailVerified,
+                    isAnonymous: auth.currentUser?.isAnonymous,
+                    tenantId: auth.currentUser?.tenantId,
+                    providerInfo: auth.currentUser?.providerData.map(provider => ({
+                        providerId: provider.providerId,
+                        displayName: provider.displayName,
+                        email: provider.email,
+                        photoUrl: provider.photoURL
+                    })) || []
+                },
+                operationType,
+                path
+            };
+            console.error('Firestore Error: ', JSON.stringify(errInfo));
+            
+            // Show user-friendly message in UI
+            const chatMessages = document.getElementById('chat-messages');
+            if (chatMessages) {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'p-2 mb-2 text-xs bg-red-500/20 text-red-400 rounded border border-red-500/30';
+                errorDiv.textContent = `Chat error: ${errInfo.error}. Please try again.`;
+                chatMessages.appendChild(errorDiv);
+                scrollToBottom();
+            }
+            
+            throw new Error(JSON.stringify(errInfo));
+        }
+
+        // Auth state listener
+        onAuthStateChanged(auth, async (user) => {
+            try {
+                if (user) {
+                    currentUser = user;
+                    await fetchUserProfile(user.uid);
+                    
+                    // If profile is still missing and it's kyler, try to create it
+                    if (!currentUserProfile && user.email === 'kyler@nexus.games') {
+                        console.log("Bootstrapping missing admin profile...");
+                        currentUserProfile = {
+                            username: 'kyler',
+                            email: 'kyler@nexus.games',
+                            approved: true,
+                            role: 'admin',
+                            createdAt: Date.now(),
+                            points: 1000,
+                            bio: "The creator of Nexus Games.",
+                            banned: false,
+                            muted: false,
+                            muteExpires: 0,
+                            wishlist: []
+                        };
+                        await setDoc(doc(db, "users", user.uid), currentUserProfile);
+                    }
+                    
+                    if (currentUserProfile) {
+                        if (currentUserProfile.banned) {
+                            alert("Your account has been banned.");
+                            signOut(auth);
+                            return;
+                        }
+
+                        if (currentUserProfile.approved || currentUserProfile.role === 'admin') {
+                            document.getElementById('login-screen').style.display = 'none';
+                            document.getElementById('pending-screen').classList.add('hidden');
+                            document.getElementById('main-ui').style.display = 'block';
+                            
+                            if (currentUserProfile.role === 'admin') {
+                                const adminBtn = document.getElementById('admin-toggle-btn');
+                                if (adminBtn) adminBtn.classList.remove('hidden');
+                                fetchPendingUsers();
+                            } else {
+                                const adminBtn = document.getElementById('admin-toggle-btn');
+                                if (adminBtn) adminBtn.classList.add('hidden');
+                            }
+                            
+                            render();
+                            setupChat();
+                            setupFriends();
+                            setupDMChannels();
+                            setupLeaderboard();
+                        } else {
+                            document.getElementById('login-screen').style.display = 'none';
+                            document.getElementById('pending-screen').classList.remove('hidden');
+                            document.getElementById('main-ui').style.display = 'none';
+                        }
+                    } else {
+                        // Profile missing and not kyler - show error or sign out
+                        console.error("User profile missing for non-admin user");
+                        document.getElementById('login-error').textContent = "Account error. Please contact admin.";
+                        document.getElementById('login-error').classList.remove('hidden');
+                        signOut(auth);
+                    }
+                } else {
+                    currentUser = null;
+                    currentUserProfile = null;
+                    document.getElementById('login-screen').style.display = 'flex';
+                    document.getElementById('pending-screen').classList.add('hidden');
+                    document.getElementById('main-ui').style.display = 'none';
+                    const adminPanel = document.getElementById('admin-panel');
+                    if (adminPanel) adminPanel.classList.add('hidden');
+                    if (unsubscribeLeaderboard) unsubscribeLeaderboard();
+                }
+            } catch (error) {
+                console.error("Auth state change error:", error);
+            }
+            lucide.createIcons();
+        });
+
+        async function fetchUserProfile(uid, retryCount = 0) {
+            const path = `users/${uid}`;
+            try {
+                const userDoc = await getDoc(doc(db, "users", uid));
+                if (userDoc.exists()) {
+                    currentUserProfile = userDoc.data();
+                } else if (retryCount < 5) {
+                    // Retry after a short delay to handle race condition during sign-up
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    return fetchUserProfile(uid, retryCount + 1);
+                } else {
+                    console.warn("User profile not found in Firestore for UID:", uid);
+                    currentUserProfile = null;
+                }
+            } catch (error) {
+                handleFirestoreError(error, OperationType.GET, path);
+            }
+        }
+
+        window.toggleAuthMode = (mode) => {
+            const loginView = document.getElementById('login-view');
+            const signupView = document.getElementById('signup-view');
+            if (mode === 'signup') {
+                loginView.classList.add('hidden');
+                signupView.classList.remove('hidden');
+            } else {
+                loginView.classList.remove('hidden');
+                signupView.classList.add('hidden');
+            }
+        };
+
+        window.handleLogin = async () => {
+            const user = document.getElementById('login-user').value.trim().toLowerCase();
+            const pass = document.getElementById('login-pass').value;
+            const errorEl = document.getElementById('login-error');
+            errorEl.textContent = "Invalid username or password";
+
+            if (!user || !pass) return;
+
+            // Internal email mapping for Firebase Auth
+            const email = `${user}@nexus.games`;
+            // Firebase requires 6 chars minimum, so we pad it internally
+            const firebasePass = pass.length < 6 ? pass.padEnd(6, '_') : pass;
+
+            try {
+                await signInWithEmailAndPassword(auth, email, firebasePass);
+            } catch (error) {
+                // If it's the first time for 'kyler' and 'k', bootstrap the account
+                // Newer Firebase versions return 'auth/invalid-credential' instead of 'auth/user-not-found'
+                if (user === 'kyler' && pass === 'k' && (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential')) {
+                    try {
+                        const userCredential = await createUserWithEmailAndPassword(auth, email, firebasePass);
+                        const uid = userCredential.user.uid;
+                        
+                        // Create admin profile in Firestore
+                        await setDoc(doc(db, "users", uid), {
+                            username: user,
+                            email: email,
+                            approved: true,
+                            role: 'admin',
+                            createdAt: Date.now()
+                        });
+                        
+                        await updateProfile(userCredential.user, { displayName: user });
+                        return;
+                    } catch (createError) {
+                        // If user already exists, the error was likely wrong password
+                        if (createError.code === 'auth/email-already-in-use') {
+                            console.error("Login failed: Incorrect password for kyler");
+                        } else {
+                            console.error("Bootstrap failed:", createError);
+                        }
+                    }
+                }
+                
+                console.error("Login failed:", error.code, error.message);
+                errorEl.classList.remove('hidden');
+                setTimeout(() => errorEl.classList.add('hidden'), 3000);
+            }
+        };
+
+        window.handleSignUp = async () => {
+            const user = document.getElementById('signup-user').value.trim().toLowerCase();
+            const pass = document.getElementById('signup-pass').value;
+            const errorEl = document.getElementById('signup-error');
+
+            if (!user || !pass) return;
+            
+            if (user === 'kyler') {
+                errorEl.textContent = "Admin account already exists. Please sign in.";
+                errorEl.classList.remove('hidden');
+                setTimeout(() => errorEl.classList.add('hidden'), 3000);
+                return;
+            }
+
+            // Check if username already exists in Firestore
+            try {
+                const q = query(collection(db, "users"), where("username", "==", user));
+                const snap = await getDocs(q);
+                if (!snap.empty) {
+                    errorEl.textContent = "Username already taken. Try another!";
+                    errorEl.classList.remove('hidden');
+                    setTimeout(() => errorEl.classList.add('hidden'), 3000);
+                    return;
+                }
+            } catch (e) {
+                console.error("Username check error:", e);
+            }
+
+            const email = `${user}@nexus.games`;
+            const firebasePass = pass.length < 6 ? pass.padEnd(6, '_') : pass;
+
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, firebasePass);
+                const uid = userCredential.user.uid;
+                
+                // Create user profile in Firestore
+                const isDefaultAdmin = email === "kyler@nexus.games";
+                
+                await setDoc(doc(db, "users", uid), {
+                    username: user,
+                    email: email,
+                    approved: isDefaultAdmin, 
+                    role: isDefaultAdmin ? 'admin' : 'user',
+                    createdAt: Date.now(),
+                    points: 100,
+                    bio: "",
+                    banned: false,
+                    muted: false,
+                    muteExpires: 0,
+                    wishlist: []
+                });
+                
+                await updateProfile(userCredential.user, { displayName: user });
+            } catch (error) {
+                console.error("Sign up failed:", error);
+                if (error.code === 'auth/email-already-in-use') {
+                    errorEl.textContent = "Username already taken. Try signing in!";
+                } else if (error.code === 'auth/weak-password') {
+                    errorEl.textContent = "Password is too weak.";
+                } else {
+                    errorEl.textContent = "Sign up failed. Please try again.";
+                }
+                errorEl.classList.remove('hidden');
+                setTimeout(() => errorEl.classList.add('hidden'), 3000);
+            }
+        };
+
+        // Admin Logic
+        window.toggleAdminPanel = () => {
+            isAdminPanelOpen = !isAdminPanelOpen;
+            const panel = document.getElementById('admin-panel');
+            panel.classList.toggle('hidden', !isAdminPanelOpen);
+            if (isAdminPanelOpen) fetchPendingUsers();
+        };
+
+        async function fetchPendingUsers() {
+            const path = "users";
+            const q = query(collection(db, path), where("approved", "==", false));
+            
+            try {
+                const snapshot = await getDocs(q);
+                const list = document.getElementById('pending-users-list');
+                
+                if (snapshot.empty) {
+                    list.innerHTML = '<p class="text-zinc-500 italic">No pending approvals at the moment.</p>';
+                    return;
+                }
+                
+                list.innerHTML = snapshot.docs.map(doc => {
+                    const data = doc.data();
+                    return `
+                        <div class="flex items-center justify-between p-4 bg-zinc-800/50 rounded-xl border border-zinc-700">
+                            <div>
+                                <h4 class="font-bold text-white">${data.username}</h4>
+                                <p class="text-xs text-zinc-500">${data.email}</p>
+                            </div>
+                            <button onclick="approveUser('${doc.id}')" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all">
+                                Approve
+                            </button>
+                        </div>
+                    `;
+                }).join('');
+            } catch (error) {
+                handleFirestoreError(error, OperationType.LIST, path);
+            }
+        }
+
+        window.approveUser = async (uid) => {
+            const path = `users/${uid}`;
+            try {
+                await updateDoc(doc(db, "users", uid), {
+                    approved: true
+                });
+                fetchPendingUsers();
+            } catch (error) {
+                handleFirestoreError(error, OperationType.UPDATE, path);
+            }
+        };
+
+        window.adminSearchUser = async () => {
+            const queryText = document.getElementById('admin-user-search').value.trim().toLowerCase();
+            const results = document.getElementById('admin-user-results');
+            if (!queryText) return;
+
+            try {
+                const q = query(collection(db, "users"), where("username", "==", queryText));
+                const snap = await getDocs(q);
+                if (snap.empty) {
+                    results.innerHTML = '<p class="text-zinc-500 italic">No user found.</p>';
+                } else {
+                    results.innerHTML = snap.docs.map(doc => {
+                        const u = doc.data();
+                        return `
+                            <div class="p-4 bg-black border border-zinc-800 rounded-xl">
+                                <div class="flex justify-between items-center mb-4">
+                                    <div>
+                                        <div class="font-bold text-white">${u.username}</div>
+                                        <div class="text-xs text-zinc-500">${u.email}</div>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <button onclick="adminAction('ban', '${doc.id}', ${!u.banned})" class="px-3 py-1 rounded bg-red-600/20 text-red-500 text-xs font-bold">${u.banned ? 'Unban' : 'Ban'}</button>
+                                        <button onclick="adminAction('mute', '${doc.id}', ${!u.muted})" class="px-3 py-1 rounded bg-orange-600/20 text-orange-500 text-xs font-bold">${u.muted ? 'Unmute' : 'Mute'}</button>
+                                        <button onclick="adminAction('delete', '${doc.id}')" class="px-3 py-1 rounded bg-red-600 text-white text-xs font-bold">Delete Account</button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            } catch (e) {
+                console.error("Admin search error:", e);
+            }
+        };
+
+        window.adminAction = async (action, uid, value) => {
+            if (action === 'delete' && !confirm("Are you sure you want to delete this user? This will remove them from everything.")) return;
+            
+            try {
+                if (action === 'ban') {
+                    await updateDoc(doc(db, "users", uid), { banned: value });
+                } else if (action === 'mute') {
+                    await updateDoc(doc(db, "users", uid), { 
+                        muted: value,
+                        muteExpires: value ? Date.now() + (24 * 60 * 60 * 1000) : 0 // 24h default
+                    });
+                } else if (action === 'delete') {
+                    // Mark messages as deleted
+                    const q = query(collection(db, "messages"), where("uid", "==", uid));
+                    const msgs = await getDocs(q);
+                    for (const m of msgs.docs) {
+                        await updateDoc(doc(db, "messages", m.id), { text: "[Account Deleted]", user: "Deleted User" });
+                    }
+                    
+                    // Delete friend requests
+                    const qFr1 = query(collection(db, "friend_requests"), where("fromId", "==", uid));
+                    const qFr2 = query(collection(db, "friend_requests"), where("toId", "==", uid));
+                    const fr1 = await getDocs(qFr1);
+                    const fr2 = await getDocs(qFr2);
+                    for (const f of fr1.docs) await deleteDoc(doc(db, "friend_requests", f.id));
+                    for (const f of fr2.docs) await deleteDoc(doc(db, "friend_requests", f.id));
+
+                    await deleteDoc(doc(db, "users", uid));
+                }
+                adminSearchUser();
+                alert(`${action} successful`);
+            } catch (e) {
+                console.error("Admin action error:", e);
+            }
+        };
+
+        window.serverCommand = async (cmd) => {
+            if (cmd === 'clear_chat') {
+                if (!confirm("Clear ALL global chat messages?")) return;
+                const snap = await getDocs(collection(db, "messages"));
+                for (const d of snap.docs) {
+                    await deleteDoc(doc(db, "messages", d.id));
+                }
+                alert("Chat cleared");
+            } else if (cmd === 'broadcast') {
+                const msg = prompt("Enter broadcast message:");
+                if (msg) {
+                    await addDoc(collection(db, "messages"), {
+                        user: "SYSTEM",
+                        text: `📢 ${msg}`,
+                        timestamp: Date.now(),
+                        uid: "system"
+                    });
+                }
+            }
+        };
+        document.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const loginScreen = document.getElementById('login-screen');
+                if (loginScreen && loginScreen.style.display !== 'none') {
+                    const signupView = document.getElementById('signup-view');
+                    if (signupView && !signupView.classList.contains('hidden')) {
+                        window.handleSignUp();
+                    } else {
+                        window.handleLogin();
+                    }
+                }
+            }
+        });
+
+        window.handleLogout = () => {
+            if (unsubscribeChat) unsubscribeChat();
+            if (unsubscribeFriends1) unsubscribeFriends1();
+            if (unsubscribeFriends2) unsubscribeFriends2();
+            if (unsubscribeDMs) unsubscribeDMs();
+            signOut(auth);
+        };
+
+        // Chat Logic
+        window.setChatTab = (tab) => {
+            currentChatTab = tab;
+            const views = ['global', 'friends', 'dms', 'leaderboard'];
+            views.forEach(v => {
+                document.getElementById(`view-${v}`).classList.toggle('hidden', v !== tab);
+                const tabBtn = document.getElementById(`tab-${v}`);
+                if (v === tab) {
+                    tabBtn.classList.add('bg-blue-600', 'text-white');
+                    tabBtn.classList.remove('text-zinc-500');
+                } else {
+                    tabBtn.classList.remove('bg-blue-600', 'text-white');
+                    tabBtn.classList.add('text-zinc-500');
+                }
+            });
+            document.getElementById('chat-title').innerText = tab === 'global' ? 'Live Chat' : (tab === 'friends' ? 'Friends' : (tab === 'dms' ? 'Direct Messages' : 'Leaderboard'));
+            lucide.createIcons();
+        };
+
+        function setupChat() {
+            if (unsubscribeChat) unsubscribeChat();
+            const path = "messages";
+            const q = query(collection(db, path), orderBy("timestamp", "desc"), limit(50));
+            
+            unsubscribeChat = onSnapshot(q, (snapshot) => {
+                const container = document.getElementById('chat-messages');
+                container.innerHTML = '';
+                
+                snapshot.forEach((doc) => {
+                    const msg = { id: doc.id, ...doc.data() };
+                    addMessageToUI(msg);
+                });
+                
+                if (!isChatOpen && snapshot.docChanges().some(change => change.type === 'added')) {
+                    unreadCount++;
+                    updateBadge();
+                }
+                scrollToBottom();
+            }, (error) => {
+                handleFirestoreError(error, OperationType.GET, path);
+            });
+        }
+
+        function addMessageToUI(msg) {
+            const container = document.getElementById('chat-messages');
+            const wrapper = document.createElement('div');
+            const isMine = msg.uid === currentUser?.uid;
+            const isAdminUser = currentUserProfile?.role === 'admin';
+            
+            wrapper.id = `msg-${msg.id}`;
+            wrapper.className = `message-container ${isMine ? 'items-end' : 'items-start'}`;
+            
+            const time = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '...';
+            const now = Date.now();
+            const canDelete = isMine && (now - msg.timestamp <= 10000);
+
+            let content = msg.text;
+            if (msg.gif) {
+                content = `<div class="gif-container"><img src="${msg.gif}" referrerPolicy="no-referrer"></div>`;
+            }
+
+            wrapper.innerHTML = `
+                <div class="message-bubble ${isMine ? 'mine' : 'others'}">
+                    <div class="flex justify-between items-baseline mb-1 gap-4">
+                        <span onclick="viewProfile('${msg.uid}')" class="text-[10px] font-bold ${isMine ? 'text-blue-100' : 'text-blue-400'} uppercase tracking-wider cursor-pointer hover:underline">${isMine ? 'You' : msg.user}</span>
+                        <span class="text-[9px] ${isMine ? 'text-blue-200' : 'text-zinc-500'}">${time}</span>
+                    </div>
+                    <div class="text-sm ${isMine ? 'text-white' : 'text-zinc-200'}">${content}</div>
+                </div>
+                <div class="message-actions">
+                    ${isMine ? `<button id="del-${msg.id}" onclick="deleteMessage('${msg.id}')" class="delete-btn ${!canDelete ? 'disabled' : ''}">Delete</button>` : ''}
+                    ${isAdminUser ? `
+                        <button onclick="deleteMessage('${msg.id}')" class="admin-action-btn">Admin Del</button>
+                        <button onclick="adminDeleteAllMessages('${msg.uid}')" class="admin-action-btn">Del All From User</button>
+                    ` : ''}
+                </div>
+            `;
+            
+            container.appendChild(wrapper);
+
+            if (canDelete) {
+                const timeLeft = 10000 - (now - msg.timestamp);
+                setTimeout(() => {
+                    const btn = document.getElementById(`del-${msg.id}`);
+                    if (btn) btn.classList.add('disabled');
+                }, timeLeft);
+            }
+        }
+
+        window.adminDeleteAllMessages = async (uid) => {
+            if (!confirm("Delete ALL messages from this user?")) return;
+            try {
+                const q = query(collection(db, "messages"), where("uid", "==", uid));
+                const snap = await getDocs(q);
+                for (const d of snap.docs) {
+                    await deleteDoc(doc(db, "messages", d.id));
+                }
+                alert("All messages deleted");
+            } catch (e) {
+                console.error("Bulk delete error:", e);
+            }
+        };
+
+        window.deleteMessage = async (id) => {
+            const path = `messages/${id}`;
+            try {
+                await deleteDoc(doc(db, "messages", id));
+            } catch (error) {
+                handleFirestoreError(error, OperationType.DELETE, path);
+            }
+        };
+
+        // Friends & DM Logic
+        function setupFriends() {
+            if (unsubscribeFriends1) unsubscribeFriends1();
+            if (unsubscribeFriends2) unsubscribeFriends2();
+            
+            const path = "friend_requests";
+            const q = query(collection(db, path), where("toId", "==", currentUser.uid));
+            const q2 = query(collection(db, path), where("fromId", "==", currentUser.uid));
+
+            // Listen for requests to me
+            unsubscribeFriends1 = onSnapshot(q, (snapshot) => {
+                friendRequests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderFriendsUI();
+            });
+
+            // Listen for requests from me (to track accepted status)
+            unsubscribeFriends2 = onSnapshot(q2, (snapshot) => {
+                const acceptedFromMe = snapshot.docs
+                    .map(doc => ({ id: doc.id, ...doc.data() }))
+                    .filter(r => r.status === 'accepted');
+                
+                // Combine with accepted requests to me
+                const qAcceptedToMe = query(collection(db, path), where("toId", "==", currentUser.uid), where("status", "==", "accepted"));
+                getDocs(qAcceptedToMe).then(snap => {
+                    const acceptedToMe = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    friends = [...acceptedFromMe, ...acceptedToMe].map(f => ({
+                        uid: f.fromId === currentUser.uid ? f.toId : f.fromId,
+                        username: f.fromId === currentUser.uid ? f.toName : f.fromName
+                    }));
+                    renderFriendsUI();
+                    renderDMList();
+                });
+            });
+        }
+
+        function renderFriendsUI() {
+            const requestsList = document.getElementById('friend-requests-list');
+            const friendsList = document.getElementById('friends-list');
+
+            const pendingRequests = friendRequests.filter(r => r.status === 'pending');
+            if (pendingRequests.length === 0) {
+                requestsList.innerHTML = '<p class="text-[10px] text-zinc-600 italic">No pending requests</p>';
+            } else {
+                requestsList.innerHTML = pendingRequests.map(r => `
+                    <div class="flex items-center justify-between p-2 bg-zinc-900 rounded-lg border border-zinc-800">
+                        <span class="text-xs font-bold text-white">${r.fromName}</span>
+                        <div class="flex gap-1">
+                            <button onclick="acceptFriendRequest('${r.id}')" class="bg-blue-600 p-1 rounded hover:bg-blue-500"><i data-lucide="check" class="w-3 h-3"></i></button>
+                            <button onclick="deleteFriendRequest('${r.id}')" class="bg-zinc-800 p-1 rounded hover:bg-zinc-700"><i data-lucide="x" class="w-3 h-3"></i></button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            if (friends.length === 0) {
+                friendsList.innerHTML = '<p class="text-[10px] text-zinc-600 italic">No friends yet</p>';
+            } else {
+                friendsList.innerHTML = friends.map(f => `
+                    <div class="flex items-center justify-between p-2 bg-zinc-900 rounded-lg border border-zinc-800 group">
+                        <span class="text-xs font-bold text-white">${f.username}</span>
+                        <button onclick="openDM('${f.uid}', '${f.username}')" class="text-blue-500 opacity-0 group-hover:opacity-100 transition-all">
+                            <i data-lucide="message-circle" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                `).join('');
+            }
+            lucide.createIcons();
+        }
+
+        window.searchUsers = async () => {
+            const queryText = document.getElementById('user-search').value.trim().toLowerCase();
+            const resultsSection = document.getElementById('search-results-section');
+            const resultsList = document.getElementById('search-results-list');
+
+            if (queryText.length < 2) {
+                resultsSection.classList.add('hidden');
+                return;
+            }
+
+            try {
+                const q = query(collection(db, "users"), where("username", ">=", queryText), where("username", "<=", queryText + '\uf8ff'), limit(5));
+                const snapshot = await getDocs(q);
+                
+                resultsSection.classList.remove('hidden');
+                if (snapshot.empty) {
+                    resultsList.innerHTML = '<p class="text-[10px] text-zinc-600 italic">No users found</p>';
+                } else {
+                    resultsList.innerHTML = snapshot.docs
+                        .map(doc => ({ id: doc.id, ...doc.data() }))
+                        .filter(u => u.id !== currentUser.uid)
+                        .map(u => {
+                            const isFriend = friends.some(f => f.uid === u.id);
+                            const hasRequest = friendRequests.some(r => r.fromId === u.id || r.toId === u.id);
+                            
+                            return `
+                                <div class="flex items-center justify-between p-2 bg-zinc-900 rounded-lg border border-zinc-800">
+                                    <span class="text-xs font-bold text-white">${u.username}</span>
+                                    ${isFriend ? '<span class="text-[10px] text-zinc-500">Friends</span>' : 
+                                      (hasRequest ? '<span class="text-[10px] text-zinc-500">Pending</span>' : 
+                                      `<button onclick="sendFriendRequest('${u.id}', '${u.username}')" class="text-blue-500 hover:text-blue-400"><i data-lucide="user-plus" class="w-4 h-4"></i></button>`)}
+                                </div>
+                            `;
+                        }).join('');
+                }
+                lucide.createIcons();
+            } catch (error) {
+                console.error("Search error:", error);
+            }
+        };
+
+        window.sendFriendRequest = async (toId, toName) => {
+            // Rate limiting check
+            const q = query(collection(db, "friend_requests"), where("fromId", "==", currentUser.uid), where("status", "==", "pending"));
+            const snap = await getDocs(q);
+            if (snap.size >= 10) {
+                alert("You have too many pending friend requests. Wait for them to be accepted or declined.");
+                return;
+            }
+
+            try {
+                await addDoc(collection(db, "friend_requests"), {
+                    fromId: currentUser.uid,
+                    fromName: currentUserProfile.username,
+                    toId: toId,
+                    toName: toName,
+                    status: 'pending',
+                    timestamp: Date.now()
+                });
+                searchUsers();
+            } catch (error) {
+                handleFirestoreError(error, OperationType.CREATE, "friend_requests");
+            }
+        };
+
+        window.acceptFriendRequest = async (requestId) => {
+            try {
+                await updateDoc(doc(db, "friend_requests", requestId), {
+                    status: 'accepted'
+                });
+            } catch (error) {
+                handleFirestoreError(error, OperationType.UPDATE, "friend_requests");
+            }
+        };
+
+        window.deleteFriendRequest = async (requestId) => {
+            try {
+                await deleteDoc(doc(db, "friend_requests", requestId));
+            } catch (error) {
+                handleFirestoreError(error, OperationType.DELETE, "friend_requests");
+            }
+        };
+
+        // DM Logic
+        function setupDMChannels() {
+            const q = query(collection(db, "direct_messages"), where("participants", "array-contains", currentUser.uid), orderBy("timestamp", "desc"));
+            onSnapshot(q, (snapshot) => {
+                const channels = {};
+                snapshot.docs.forEach(doc => {
+                    const data = doc.data();
+                    if (!channels[data.channelId]) {
+                        channels[data.channelId] = {
+                            id: data.channelId,
+                            lastMessage: data.text,
+                            timestamp: data.timestamp,
+                            otherUser: data.participants.find(p => p !== currentUser.uid),
+                            otherName: data.senderId === currentUser.uid ? (data.receiverName || 'User') : data.senderName
+                        };
+                    }
+                });
+                dmChannels = Object.values(channels);
+                renderDMList();
+            });
+        }
+
+        function renderDMList() {
+            const list = document.getElementById('dm-list-view');
+            if (dmChannels.length === 0) {
+                list.innerHTML = '<p class="text-zinc-500 text-center py-8 text-xs italic">No direct messages yet. Add friends to start chatting!</p>';
+                return;
+            }
+
+            list.innerHTML = dmChannels.map(c => `
+                <div onclick="openDM('${c.otherUser}', '${c.otherName}')" class="p-3 bg-zinc-900 rounded-xl border border-zinc-800 hover:border-blue-500 cursor-pointer transition-all">
+                    <div class="flex justify-between items-baseline mb-1">
+                        <span class="font-bold text-white text-sm">${c.otherName}</span>
+                        <span class="text-[9px] text-zinc-500">${new Date(c.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                    <p class="text-xs text-zinc-400 truncate">${c.lastMessage}</p>
+                </div>
+            `).join('');
+        }
+
+        window.openDM = (otherId, otherName) => {
+            const channelId = [currentUser.uid, otherId].sort().join('_');
+            currentDMChannel = { id: channelId, otherId, otherName };
+            
+            setChatTab('dms');
+            document.getElementById('dm-list-view').classList.add('hidden');
+            document.getElementById('dm-chat-view').classList.remove('hidden');
+            document.getElementById('dm-target-name').innerText = otherName;
+            
+            if (unsubscribeDMs) unsubscribeDMs();
+            
+            const q = query(collection(db, "direct_messages"), where("channelId", "==", channelId), orderBy("timestamp", "desc"), limit(50));
+            unsubscribeDMs = onSnapshot(q, (snapshot) => {
+                const container = document.getElementById('dm-messages');
+                container.innerHTML = '';
+                snapshot.forEach(doc => {
+                    const msg = doc.data();
+                    const isMine = msg.senderId === currentUser.uid;
+                    const wrapper = document.createElement('div');
+                    wrapper.className = `message-container ${isMine ? 'items-end' : 'items-start'}`;
+                    const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    
+                    wrapper.innerHTML = `
+                        <div class="message-bubble ${isMine ? 'mine' : 'others'}">
+                            <div class="flex justify-between items-baseline mb-1 gap-4">
+                                <span class="text-[10px] font-bold ${isMine ? 'text-blue-100' : 'text-blue-400'} uppercase tracking-wider">${isMine ? 'You' : msg.senderName}</span>
+                                <span class="text-[9px] ${isMine ? 'text-blue-200' : 'text-zinc-500'}">${time}</span>
+                            </div>
+                            <p class="text-sm ${isMine ? 'text-white' : 'text-zinc-200'}">${msg.text}</p>
+                        </div>
+                    `;
+                    container.appendChild(wrapper);
+                });
+                container.scrollTop = container.scrollHeight;
+            });
+        };
+
+        window.backToDMList = () => {
+            document.getElementById('dm-list-view').classList.remove('hidden');
+            document.getElementById('dm-chat-view').classList.add('hidden');
+            currentDMChannel = null;
+            if (unsubscribeDMs) unsubscribeDMs();
+        };
+
+        window.sendDM = async () => {
+            const input = document.getElementById('dm-input');
+            const text = input.value.trim();
+            if (text && currentDMChannel) {
+                try {
+                    await addDoc(collection(db, "direct_messages"), {
+                        participants: [currentUser.uid, currentDMChannel.otherId],
+                        text: text,
+                        senderId: currentUser.uid,
+                        senderName: currentUserProfile.username,
+                        timestamp: Date.now(),
+                        channelId: currentDMChannel.id
+                    });
+                    input.value = '';
+                } catch (error) {
+                    handleFirestoreError(error, OperationType.CREATE, "direct_messages");
+                }
+            }
+        };
+
+        document.getElementById('dm-input')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') window.sendDM();
+        });
+
+        window.sendMessage = async (gifUrl = null) => {
+            const path = "messages";
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            
+            if ((text || gifUrl) && currentUser) {
+                if (currentUserProfile?.muted && (currentUserProfile.muteExpires === 0 || currentUserProfile.muteExpires > Date.now())) {
+                    alert("You are muted.");
+                    return;
+                }
+
+                try {
+                    await addDoc(collection(db, path), {
+                        user: currentUser.displayName || 'Anonymous',
+                        text: text,
+                        gif: gifUrl,
+                        timestamp: Date.now(),
+                        uid: currentUser.uid
+                    });
+                    input.value = '';
+                    if (gifUrl) toggleGifPicker();
+                    
+                    // Award points for non-spam messages
+                    if (text.length > 5) {
+                        awardPoints(1);
+                    }
+                } catch (error) {
+                    handleFirestoreError(error, OperationType.WRITE, path);
+                }
+            }
+        };
+
+        async function awardPoints(amount) {
+            if (!currentUser) return;
+            try {
+                const newPoints = (currentUserProfile.points || 0) + amount;
+                await updateDoc(doc(db, "users", currentUser.uid), { points: newPoints });
+                currentUserProfile.points = newPoints;
+            } catch (e) {
+                console.error("Point award error:", e);
+            }
+        }
+
+        // Profile Modal Logic
+        window.viewProfile = async (uid) => {
+            try {
+                const userDoc = await getDoc(doc(db, "users", uid));
+                if (!userDoc.exists()) {
+                    alert("User not found.");
+                    return;
+                }
+                const u = userDoc.data();
+                const isMe = uid === currentUser.uid;
+                
+                document.getElementById('profile-username').innerText = u.username;
+                document.getElementById('profile-role').innerText = u.role;
+                document.getElementById('profile-bio').innerText = u.bio || "No bio yet.";
+                document.getElementById('profile-points').innerText = `${u.points || 0} pts`;
+                document.getElementById('profile-joined').innerText = new Date(u.createdAt).toLocaleDateString();
+                
+                const actions = document.getElementById('profile-actions');
+                actions.innerHTML = '';
+                if (!isMe) {
+                    const isFriend = friends.some(f => f.uid === uid);
+                    const hasRequest = friendRequests.some(r => r.fromId === uid || r.toId === uid);
+                    
+                    if (!isFriend && !hasRequest) {
+                        actions.innerHTML = `<button onclick="sendFriendRequest('${uid}', '${u.username}')" class="bg-blue-600 px-4 py-2 rounded-xl text-xs font-bold">Add Friend</button>`;
+                    } else if (isFriend) {
+                        actions.innerHTML = `<button onclick="openDM('${uid}', '${u.username}')" class="bg-zinc-800 px-4 py-2 rounded-xl text-xs font-bold">Message</button>`;
+                    }
+                }
+                
+                document.getElementById('edit-bio-btn').classList.toggle('hidden', !isMe);
+                
+                const wishlist = document.getElementById('profile-wishlist');
+                if (u.wishlist && u.wishlist.length > 0) {
+                    wishlist.innerHTML = u.wishlist.map(item => `
+                        <span class="bg-zinc-800 px-3 py-1 rounded-full text-[10px] text-zinc-300 border border-zinc-700">${item}</span>
+                    `).join('');
+                } else {
+                    wishlist.innerHTML = '<p class="text-[10px] text-zinc-600 italic">Wishlist is empty</p>';
+                }
+
+                document.getElementById('profile-modal').classList.remove('hidden');
+                lucide.createIcons();
+            } catch (e) {
+                console.error("View profile error:", e);
+            }
+        };
+
+        window.closeProfile = () => document.getElementById('profile-modal').classList.add('hidden');
+        
+        window.startEditBio = () => {
+            document.getElementById('profile-bio-container').classList.add('hidden');
+            document.getElementById('edit-bio-container').classList.remove('hidden');
+            document.getElementById('bio-input').value = currentUserProfile.bio || "";
+        };
+
+        window.cancelEditBio = () => {
+            document.getElementById('profile-bio-container').classList.remove('hidden');
+            document.getElementById('edit-bio-container').classList.add('hidden');
+        };
+
+        window.saveBio = async () => {
+            const bio = document.getElementById('bio-input').value.trim();
+            try {
+                await updateDoc(doc(db, "users", currentUser.uid), { bio });
+                currentUserProfile.bio = bio;
+                document.getElementById('profile-bio').innerText = bio || "No bio yet.";
+                cancelEditBio();
+            } catch (e) {
+                console.error("Save bio error:", e);
+            }
+        };
+
+        // Leaderboard Logic
+        function setupLeaderboard() {
+            if (unsubscribeLeaderboard) unsubscribeLeaderboard();
+            const q = query(collection(db, "users"), orderBy("points", "desc"), limit(20));
+            unsubscribeLeaderboard = onSnapshot(q, (snapshot) => {
+                const list = document.getElementById('leaderboard-list');
+                list.innerHTML = snapshot.docs.map((doc, i) => {
+                    const u = doc.data();
+                    const rank = i + 1;
+                    return `
+                        <div class="leaderboard-item">
+                            <div class="leaderboard-rank ${rank <= 3 ? `rank-${rank}` : 'bg-zinc-800 text-zinc-400'}">${rank}</div>
+                            <div class="flex-1">
+                                <div class="font-bold text-sm text-white">${u.username}</div>
+                                <div class="text-[10px] text-zinc-500 uppercase tracking-widest">${u.role}</div>
+                            </div>
+                            <div class="text-blue-400 font-black text-sm">${u.points || 0}</div>
+                        </div>
+                    `;
+                }).join('');
+            });
+        }
+
+        // Gambling Logic
+        window.openGamble = () => {
+            document.getElementById('gamble-modal').classList.remove('hidden');
+            document.getElementById('gamble-balance').innerText = `${currentUserProfile.points || 0} pts`;
+        };
+        window.closeGamble = () => document.getElementById('gamble-modal').classList.add('hidden');
+
+        window.spin = async (bet) => {
+            if ((currentUserProfile.points || 0) < bet) {
+                alert("Not enough points!");
+                return;
+            }
+
+            const status = document.getElementById('gamble-status');
+            status.innerText = "Spinning...";
+            
+            // Deduct bet
+            await awardPoints(-bet);
+            document.getElementById('gamble-balance').innerText = `${currentUserProfile.points} pts`;
+
+            const symbols = ['🍒', '🍋', '🍇', '💎', '7️⃣'];
+            const reels = [
+                document.getElementById('reel-1'),
+                document.getElementById('reel-2'),
+                document.getElementById('reel-3')
+            ];
+
+            let results = [];
+            for (let i = 0; i < 3; i++) {
+                const res = symbols[Math.floor(Math.random() * symbols.length)];
+                results.push(res);
+                reels[i].innerText = res;
+            }
+
+            if (results[0] === results[1] && results[1] === results[2]) {
+                let win = bet * 10;
+                if (results[0] === '💎') win = bet * 50;
+                if (results[0] === '7️⃣') win = bet * 100;
+                
+                await awardPoints(win);
+                status.innerText = `JACKPOT! You won ${win} points!`;
+                status.className = "text-sm font-bold text-yellow-500 h-6";
+            } else if (results[0] === results[1] || results[1] === results[2] || results[0] === results[2]) {
+                const win = bet * 2;
+                await awardPoints(win);
+                status.innerText = `Nice! You won ${win} points!`;
+                status.className = "text-sm font-bold text-blue-400 h-6";
+            } else {
+                status.innerText = "Better luck next time!";
+                status.className = "text-sm font-bold text-zinc-500 h-6";
+            }
+            document.getElementById('gamble-balance').innerText = `${currentUserProfile.points} pts`;
+        };
+
+        // GIF Logic
+        window.toggleGifPicker = () => document.getElementById('gif-picker').classList.toggle('open');
+        
+        window.searchGifs = () => {
+            const query = document.getElementById('gif-search').value.trim().toLowerCase();
+            const grid = document.getElementById('gif-grid');
+            
+            if (gifSearchTimeout) clearTimeout(gifSearchTimeout);
+            gifSearchTimeout = setTimeout(() => {
+                // In a real app, you'd call Giphy API here. 
+                // For this demo, we'll just filter our mock list.
+                grid.innerHTML = MOCK_GIFS.map(url => `
+                    <div class="gif-item" onclick="sendMessage('${url}')">
+                        <img src="${url}" class="w-full h-24 object-cover">
+                    </div>
+                `).join('');
+            }, 300);
+        };
+
+        // Fullscreen logic
+        window.toggleFullscreenChat = () => {
+            const panel = document.getElementById('chat-panel');
+            const icon = document.getElementById('fullscreen-icon');
+            isFullscreenChat = !isFullscreenChat;
+            panel.classList.toggle('fullscreen', isFullscreenChat);
+            icon.setAttribute('data-lucide', isFullscreenChat ? 'minimize' : 'maximize');
+            lucide.createIcons();
+        };
+
+        document.getElementById('chat-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') window.sendMessage();
+        });
+
+        window.toggleChat = () => {
+            const panel = document.getElementById('chat-panel');
+            isChatOpen = !isChatOpen;
+            panel.classList.toggle('open', isChatOpen);
+            
+            if (isChatOpen) {
+                unreadCount = 0;
+                updateBadge();
+                setTimeout(scrollToBottom, 300);
+            }
+        };
+
+        function updateBadge() {
+            const badge = document.getElementById('chat-badge');
+            if (unreadCount > 0) {
+                badge.innerText = unreadCount;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        function scrollToBottom() {
+            const container = document.getElementById('chat-messages');
+            const dmContainer = document.getElementById('dm-messages');
+            if (container) container.scrollTop = 0;
+            if (dmContainer) dmContainer.scrollTop = 0;
+        }
+
+        // Game Logic
+        const savedVotes = JSON.parse(localStorage.getItem('nexus_votes') || '{}');
+        const userVotes = JSON.parse(localStorage.getItem('nexus_user_votes') || '{}');
+
+        const GAMES = [
+            { title: 'Basket Random', category: 'Sports', url: 'https://www.twoplayergames.org/gameframe/basket-random', img: 'https://i.ibb.co/Zp4gNTsb/basket-random.png' },
+            { title: 'Soccer Random', category: 'Sports', url: 'https://www.twoplayergames.org/gameframe/soccer-random', img: 'https://ibb.co/9kPsdTr0' },
+            { title: 'Boxing Random', category: 'Sports', url: 'https://www.twoplayergames.org/gameframe/boxing-random', img: 'https://ibb.co/h1sp7Qp8' },
+            { title: 'Retro Bowl', category: 'Sports', url: 'https://www.twoplayergames.org/gameframe/retro-bowl', img: 'https://picsum.photos/seed/retro/400/250' },
+            { title: 'BitLife', category: 'Simulation', url: 'https://www.twoplayergames.org/gameframe/bitlife', img: 'https://picsum.photos/seed/bitlife/400/250' },
+            { title: '1v1.lol', category: 'Action', url: 'https://www.twoplayergames.org/gameframe/1v1-lol', img: 'https://picsum.photos/seed/1v1/400/250' },
+            { title: 'Slope', category: 'Action', url: 'https://www.twoplayergames.org/gameframe/slope', img: 'https://picsum.photos/seed/slope/400/250' },
+            { title: 'Tunnel Rush', category: 'Action', url: 'https://www.twoplayergames.org/gameframe/tunnel-rush', img: 'https://picsum.photos/seed/tunnel/400/250' },
+            { title: 'Drift Hunters', category: 'Driving', url: 'https://www.twoplayergames.org/gameframe/drift-hunters', img: 'https://picsum.photos/seed/drift/400/250' },
+            { title: 'Moto X3M', category: 'Sports', url: 'https://www.twoplayergames.org/gameframe/moto-x3m', img: 'https://picsum.photos/seed/moto/400/250' }
+        ].map(g => ({ ...g, votes: savedVotes[g.title] || 0 }));
+
+        const CATEGORIES = ['All', ...new Set(GAMES.map(g => g.category))];
+        let currentCategory = 'All';
+
+        window.render = () => {
+            const query = document.getElementById('search').value.toLowerCase();
+            const grid = document.getElementById('grid');
+            const featuredSection = document.getElementById('featured-section');
+            const featuredGameContainer = document.getElementById('featured-game');
+            const categoriesContainer = document.getElementById('categories');
+            const sectionTitle = document.getElementById('section-title');
+
+            categoriesContainer.innerHTML = CATEGORIES.map(cat => `
+                <button onclick="setCategory('${cat}')" class="px-4 py-2 rounded-full text-sm font-bold transition-all ${currentCategory === cat ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-800'}">
+                    ${cat}
+                </button>
+            `).join('');
+
+            sectionTitle.innerText = currentCategory === 'All' ? 'All Games' : `${currentCategory} Games`;
+
+            const sortedByVotes = [...GAMES].sort((a, b) => b.votes - a.votes);
+            const topGame = sortedByVotes[0];
+
+            if (topGame && topGame.votes > 0 && !query && currentCategory === 'All') {
+                const userVote = userVotes[topGame.title] || 0;
+                const inWishlist = currentUserProfile?.wishlist?.includes(topGame.title);
+                featuredSection.classList.remove('hidden');
+                featuredGameContainer.innerHTML = `
+                    <div class="game-card bg-zinc-900 rounded-2xl overflow-hidden border border-blue-500/30 group flex flex-col md:flex-row h-auto md:h-64 shadow-2xl shadow-blue-500/10">
+                        <div class="relative w-full md:w-1/2 h-48 md:h-full">
+                            <img src="${topGame.img}" class="w-full h-full object-cover" referrerPolicy="no-referrer">
+                            <div class="overlay">
+                                <button class="play-btn" onclick="play('${topGame.url}', '${topGame.title}')">Play Featured Game</button>
+                            </div>
+                        </div>
+                        <div class="p-8 flex flex-col justify-center flex-1 bg-gradient-to-br from-zinc-900 to-black">
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <span class="text-blue-500 text-xs font-bold tracking-widest uppercase mb-2 block">Top Rated • ${topGame.category}</span>
+                                    <h3 class="text-3xl font-black tracking-tight text-white">${topGame.title}</h3>
+                                </div>
+                                <div class="flex flex-col items-center bg-zinc-800/50 p-3 rounded-xl border border-zinc-700">
+                                    <button onclick="vote('${topGame.title}', 1)" class="${userVote === 1 ? 'text-blue-500' : 'text-zinc-400'} hover:text-blue-500 transition-colors">
+                                        <i data-lucide="chevron-up" class="w-6 h-6"></i>
+                                    </button>
+                                    <span class="font-bold text-xl text-blue-400 my-1">${topGame.votes}</span>
+                                    <button onclick="vote('${topGame.title}', -1)" class="${userVote === -1 ? 'text-red-500' : 'text-zinc-400'} hover:text-red-500 transition-colors">
+                                        <i data-lucide="chevron-down" class="w-6 h-6"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <button onclick="play('${topGame.url}', '${topGame.title}')" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-6 rounded-xl transition-all w-fit flex items-center gap-2">
+                                    <i data-lucide="play" class="fill-current w-4 h-4"></i>
+                                    PLAY NOW
+                                </button>
+                                <button onclick="toggleWishlist('${topGame.title}')" class="text-xs font-bold uppercase tracking-widest ${inWishlist ? 'text-yellow-500' : 'text-zinc-400'} hover:text-white transition-all">
+                                    ${inWishlist ? '★ In Wishlist' : '☆ Add to Wishlist'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                featuredSection.classList.add('hidden');
+            }
+
+            const filteredGames = GAMES.filter(g => {
+                const matchesSearch = g.title.toLowerCase().includes(query);
+                const matchesCategory = currentCategory === 'All' || g.category === currentCategory;
+                return matchesSearch && matchesCategory;
+            });
+            
+            grid.innerHTML = filteredGames.map((g, index) => {
+                const userVote = userVotes[g.title] || 0;
+                const inWishlist = currentUserProfile?.wishlist?.includes(g.title);
+                return `
+                <div class="game-card bg-zinc-900 rounded-xl overflow-hidden border border-zinc-800 hover:border-blue-500 group">
+                    <div class="relative">
+                        <img src="${g.img}" class="w-full h-40 object-cover" referrerPolicy="no-referrer">
+                        <div class="overlay">
+                            <div class="flex flex-col gap-2 items-center">
+                                <button class="play-btn" onclick="play('${g.url}', '${g.title}')">Play Game</button>
+                                <button onclick="toggleWishlist('${g.title}')" class="text-[10px] font-bold uppercase tracking-widest ${inWishlist ? 'text-yellow-500' : 'text-zinc-400'} hover:text-white transition-all">
+                                    ${inWishlist ? '★ In Wishlist' : '☆ Add to Wishlist'}
+                                </button>
+                            </div>
+                        </div>
+                        <div class="absolute top-2 left-2">
+                            <span class="bg-black/60 backdrop-blur-md text-[10px] font-bold px-2 py-1 rounded text-blue-400 border border-blue-500/20 uppercase tracking-tighter">${g.category}</span>
+                        </div>
+                    </div>
+                    <div class="p-4 flex items-center justify-between">
+                        <h3 class="font-bold text-zinc-100 truncate mr-2">${g.title}</h3>
+                        <div class="flex items-center gap-2 bg-black/40 px-2 py-1 rounded-lg border border-zinc-800">
+                            <button onclick="vote('${g.title}', 1)" class="${userVote === 1 ? 'text-blue-500' : 'text-zinc-500'} hover:text-blue-500 transition-colors">
+                                <i data-lucide="chevron-up" class="w-4 h-4"></i>
+                            </button>
+                            <span class="text-xs font-mono font-bold ${g.votes >= 0 ? 'text-blue-400' : 'text-red-400'} min-w-[1.5rem] text-center">${g.votes}</span>
+                            <button onclick="vote('${g.title}', -1)" class="${userVote === -1 ? 'text-red-500' : 'text-zinc-500'} hover:text-red-500 transition-colors">
+                                <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `}).join('');
+            lucide.createIcons();
+        };
+
+        window.setCategory = (cat) => {
+            currentCategory = cat;
+            render();
+        };
+
+        window.vote = (title, delta) => {
+            const game = GAMES.find(g => g.title === title);
+            if (game) {
+                const currentVote = userVotes[title] || 0;
+                if (currentVote === delta) {
+                    game.votes -= delta;
+                    delete userVotes[title];
+                } else if (currentVote === 0) {
+                    game.votes += delta;
+                    userVotes[title] = delta;
+                } else {
+                    game.votes += (delta * 2);
+                    userVotes[title] = delta;
+                }
+                const votesToSave = {};
+                GAMES.forEach(g => {
+                    if (g.votes !== 0) votesToSave[g.title] = g.votes;
+                });
+                localStorage.setItem('nexus_votes', JSON.stringify(votesToSave));
+                localStorage.setItem('nexus_user_votes', JSON.stringify(userVotes));
+                render();
+            }
+        };
+
+        window.toggleWishlist = async (title) => {
+            if (!currentUser) return;
+            let wishlist = [...(currentUserProfile.wishlist || [])];
+            if (wishlist.includes(title)) {
+                wishlist = wishlist.filter(t => t !== title);
+            } else {
+                wishlist.push(title);
+            }
+            try {
+                await updateDoc(doc(db, "users", currentUser.uid), { wishlist });
+                currentUserProfile.wishlist = wishlist;
+                render();
+            } catch (e) {
+                console.error("Wishlist error:", e);
+            }
+        };
+
+        window.play = (url, title) => {
+            document.getElementById('game-iframe').src = url;
+            document.getElementById('game-container').style.display = 'block';
+            document.getElementById('main-ui').style.display = 'none';
+            
+            // Award points for playing
+            awardPoints(5);
+
+            // Add a "Gamble" button to the game UI if it's a gambling game
+            const container = document.getElementById('game-container');
+            let gambleBtn = document.getElementById('gamble-trigger');
+            if (!gambleBtn) {
+                gambleBtn = document.createElement('button');
+                gambleBtn.id = 'gamble-trigger';
+                gambleBtn.className = 'absolute bottom-8 right-8 bg-yellow-500 hover:bg-yellow-400 text-black font-black p-4 rounded-full shadow-2xl z-50 transition-all hover:scale-110 active:scale-95 flex items-center gap-2';
+                gambleBtn.innerHTML = '<i data-lucide="coins"></i> GAMBLE POINTS';
+                gambleBtn.onclick = openGamble;
+                container.appendChild(gambleBtn);
+                lucide.createIcons();
+            }
+        };
+
+        window.closeGame = () => {
+            document.getElementById('game-iframe').src = '';
+            document.getElementById('game-container').style.display = 'none';
+            document.getElementById('main-ui').style.display = 'block';
+        };
+
+        window.reloadGame = () => {
+            const iframe = document.getElementById('game-iframe');
+            if (iframe.src) {
+                const url = iframe.src;
+                iframe.src = '';
+                iframe.src = url;
+            }
+        };
+
+        render();
+        lucide.createIcons();
+    </script>
+</body>
+</html>
