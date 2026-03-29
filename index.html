@@ -1077,6 +1077,10 @@
                                 <option value="">None</option>
                             </select>
                         </div>
+                        <div class="bg-zinc-950/60 border border-zinc-800 rounded-xl p-3">
+                            <h4 class="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-2">Profile Shop (Points)</h4>
+                            <div id="profile-shop-items" class="space-y-2"></div>
+                        </div>
                         <button onclick="saveProfile()" class="login-btn">Save Changes</button>
                     </div>
                 </div>
@@ -1431,13 +1435,15 @@
                             gamesPlayed: 0,
                             messagesSent: 0,
                             favoriteGame: '',
-                            badges: [],
-                            level: 1,
-                            friends: [],
-                            avatarUrl: `https://picsum.photos/seed/kyler/200`,
-                            blockedUsers: [],
-                            profileColor: '#3b82f6'
-                        });
+                    badges: [],
+                    level: 1,
+                    friends: [],
+                    avatarUrl: `https://picsum.photos/seed/kyler/200`,
+                    blockedUsers: [],
+                    profileColor: '#3b82f6',
+                    ownedCosmetics: [],
+                    activeBackground: 'default'
+                });
                         await updateProfile(res.user, { displayName: 'kyler' });
                         return;
                     } catch (createErr) {
@@ -1508,7 +1514,9 @@
                     avatarUrl: `https://picsum.photos/seed/${user}/200`,
                     blockedUsers: [],
                     profileColor: '#3b82f6',
-                    friends: []
+                    friends: [],
+                    ownedCosmetics: [],
+                    activeBackground: 'default'
                 });
                 await updateProfile(res.user, { displayName: user });
             } catch (e) {
@@ -2451,21 +2459,21 @@
 
 
         function setupAnnouncementListener() {
-            onSnapshot(doc(db, 'app_state', 'announcement'), (snap) => {
-                const bar = document.getElementById('announcement-bar');
-                if (!bar) return;
-                if (!snap.exists()) {
-                    bar.classList.add('hidden');
-                    return;
+            onSnapshot(
+                query(collection(db, 'update_logs'), where('version', '==', 'broadcast'), orderBy('timestamp', 'desc'), limit(1)),
+                (snap) => {
+                    const bar = document.getElementById('announcement-bar');
+                    if (!bar) return;
+                    if (snap.empty) {
+                        bar.classList.add('hidden');
+                        bar.innerText = '';
+                        return;
+                    }
+                    const data = snap.docs[0].data();
+                    bar.innerText = `📢 ${data.content}`;
+                    bar.classList.remove('hidden');
                 }
-                const data = snap.data();
-                if (!data.message || (data.expiresAt && Date.now() > data.expiresAt)) {
-                    bar.classList.add('hidden');
-                    return;
-                }
-                bar.innerText = `📢 ${data.message}`;
-                bar.classList.remove('hidden');
-            });
+            );
         }
 
         window.toggleCommunityModal = () => {
@@ -2489,25 +2497,28 @@
             const title = document.getElementById('community-title').value.trim();
             const body = document.getElementById('community-body').value.trim();
             if (!title || !body) return alert('Add a title and message.');
-            await addDoc(collection(db, 'community_posts'), {
+            await addDoc(collection(db, 'suggestions'), {
                 uid: currentUser.uid,
                 username: currentUserProfile.username,
-                title,
-                body,
-                createdAt: Date.now()
+                text: `[THREAD] ${title}\n${body}`,
+                timestamp: Date.now()
             });
             document.getElementById('community-title').value = '';
             document.getElementById('community-body').value = '';
             loadCommunityPosts();
+            toggleCommunityComposer(false);
         };
 
         async function loadCommunityPosts() {
             const wrap = document.getElementById('community-posts');
             if (!wrap || !currentUser) return;
-            const snap = await getDocs(query(collection(db, 'community_posts'), orderBy('createdAt', 'desc'), limit(50)));
+            const snap = await getDocs(query(collection(db, 'suggestions'), orderBy('timestamp', 'desc'), limit(100)));
             wrap.innerHTML = snap.docs.map(d => {
                 const p = d.data();
-                return `<div class="p-3 rounded-xl bg-zinc-900 border border-zinc-800"><div class="font-bold">${p.title}</div><div class="text-xs text-zinc-500 mb-2">by ${p.username}</div><div class="text-sm text-zinc-300">${p.body}</div></div>`;
+                if (!(p.text || '').startsWith('[THREAD]')) return '';
+                const thread = (p.text || '').replace('[THREAD] ', '');
+                const [title, ...rest] = thread.split('\n');
+                return `<div class="p-3 rounded-xl bg-zinc-900 border border-zinc-800"><div class="font-bold">${title || 'Thread'}</div><div class="text-xs text-zinc-500 mb-2">by ${p.username}</div><div class="text-sm text-zinc-300">${rest.join('\n')}</div></div>`;
             }).join('') || '<div class="text-zinc-500 text-sm">No threads yet.</div>';
         }
 
@@ -2531,11 +2542,11 @@
             } else if (cmd === 'broadcast') {
                 const msg = prompt("Enter broadcast message:");
                 if (msg) {
-                    await setDoc(doc(db, 'app_state', 'announcement'), {
-                        message: msg,
-                        createdAt: Date.now(),
-                        by: currentUserProfile.username,
-                        expiresAt: Date.now() + 1000 * 60 * 10
+                    await addDoc(collection(db, 'update_logs'), {
+                        version: 'broadcast',
+                        date: new Date().toLocaleString(),
+                        content: msg,
+                        timestamp: Date.now()
                     });
                 }
             }
@@ -2692,6 +2703,65 @@
             loadUsers();
         };
 
+        const PROFILE_COSMETICS = [
+            { id: 'bg_neon', name: 'Neon Backdrop', cost: 300, bg: 'linear-gradient(135deg,#0f172a,#1d4ed8)' },
+            { id: 'bg_sunset', name: 'Sunset Backdrop', cost: 350, bg: 'linear-gradient(135deg,#7c2d12,#be123c)' },
+            { id: 'bg_forest', name: 'Forest Backdrop', cost: 280, bg: 'linear-gradient(135deg,#14532d,#166534)' },
+            { id: 'theme_gold', name: 'Gold Accent', cost: 220, color: '#f59e0b' },
+            { id: 'theme_rose', name: 'Rose Accent', cost: 220, color: '#f43f5e' }
+        ];
+
+        function renderProfileShop() {
+            const wrap = document.getElementById('profile-shop-items');
+            if (!wrap || !currentUserProfile) return;
+            const owned = currentUserProfile.ownedCosmetics || [];
+            wrap.innerHTML = PROFILE_COSMETICS.map(item => {
+                const has = owned.includes(item.id);
+                return `
+                    <div class="flex justify-between items-center text-xs bg-zinc-900 rounded-lg p-2">
+                        <div>
+                            <div class="font-bold">${item.name}</div>
+                            <div class="text-zinc-500">${item.cost} pts</div>
+                        </div>
+                        ${has
+                            ? `<button onclick="applyCosmetic('${item.id}')" class="px-2 py-1 rounded bg-blue-600">Apply</button>`
+                            : `<button onclick="buyCosmetic('${item.id}')" class="px-2 py-1 rounded bg-green-600">Buy</button>`
+                        }
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.buyCosmetic = async (id) => {
+            const item = PROFILE_COSMETICS.find(i => i.id === id);
+            if (!item) return;
+            const owned = currentUserProfile.ownedCosmetics || [];
+            if (owned.includes(id)) return;
+            if ((currentUserProfile.points || 0) < item.cost) return alert('Not enough points.');
+            const points = (currentUserProfile.points || 0) - item.cost;
+            const ownedCosmetics = [...owned, id];
+            await updateDoc(doc(db, 'users', currentUser.uid), { points, ownedCosmetics });
+            currentUserProfile.points = points;
+            currentUserProfile.ownedCosmetics = ownedCosmetics;
+            updatePointsDisplay();
+            renderProfileShop();
+        };
+
+        window.applyCosmetic = async (id) => {
+            const item = PROFILE_COSMETICS.find(i => i.id === id);
+            if (!item) return;
+            if (item.color) {
+                await updateDoc(doc(db, 'users', currentUser.uid), { profileColor: item.color });
+                currentUserProfile.profileColor = item.color;
+                document.getElementById('profile-card').style.setProperty('--profile-color', item.color);
+            }
+            if (item.bg) {
+                await updateDoc(doc(db, 'users', currentUser.uid), { activeBackground: id });
+                currentUserProfile.activeBackground = id;
+                document.getElementById('profile-card').style.background = item.bg;
+            }
+        };
+
         // Profile
         window.showOwnProfile = () => {
             renderProfileData(currentUserProfile, true, currentUser.uid);
@@ -2718,6 +2788,8 @@
             document.getElementById('profile-bio').innerText = data.bio || "No bio set.";
             document.getElementById('profile-fav-game-display').innerText = data.favoriteGame || "None";
             document.getElementById('profile-card').style.setProperty('--profile-color', data.profileColor || '#3b82f6');
+            const bgItem = PROFILE_COSMETICS.find(i => i.id === data.activeBackground && i.bg);
+            document.getElementById('profile-card').style.background = bgItem ? bgItem.bg : '#09090b';
             
             const badgesContainer = document.getElementById('profile-badges');
             if (badgesContainer) {
@@ -2736,6 +2808,7 @@
             const editSection = document.getElementById('profile-edit-section');
             if (editSection) {
                 if (isOwn) {
+                    renderProfileShop();
                     editSection.classList.remove('hidden');
                     document.getElementById('profile-bio-input').value = data.bio || "";
                     document.getElementById('profile-avatar-input').value = data.avatarUrl || '';
