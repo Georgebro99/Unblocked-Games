@@ -727,18 +727,9 @@
             100% { transform: translateY(10px); }
         }
         .gif-picker {
-            position: absolute;
-            bottom: 100%;
             right: 0;
-            background: #09090b;
-            border: 1px solid #27272a;
-            border-radius: 1rem;
-            width: 250px;
-            height: 300px;
-            display: flex;
-            flex-direction: column;
-            z-index: 100;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            width: 360px;
+            height: 340px;
         }
     </style>
 </head>
@@ -1251,11 +1242,11 @@
         </div>
         <div id="chat-messages" class="chat-messages"></div>
         <div class="chat-input-container relative">
-            <div id="gif-picker" class="hidden absolute bottom-[calc(100%+10px)] left-1/2 -translate-x-1/2 w-80 h-80 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl flex flex-direction-column overflow-hidden mb-2">
+            <div id="gif-picker" class="gif-picker hidden mb-2">
                 <div class="p-2 border-b border-zinc-800">
                     <input type="text" placeholder="Search GIFs..." class="w-full bg-black border border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500" oninput="searchGifs(this.value)">
                 </div>
-                <div id="gif-results" class="flex-1 overflow-y-auto p-2 grid grid-cols-2 gap-2"></div>
+                <div id="gif-results" class="flex-1 overflow-y-auto p-2 grid grid-cols-3 gap-2"></div>
             </div>
             <div class="flex gap-2 items-center">
                 <button onclick="toggleGifPicker()" class="text-zinc-500 hover:text-blue-500 transition-colors">
@@ -1915,7 +1906,31 @@
             "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJqZ3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/3o7TKVUn7iM8FMEU24/giphy.gif",
             "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJqZ3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/l41lTfuxyX98l89Xy/giphy.gif",
             "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJqZ3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/3o7TKMGpxx66d3195u/giphy.gif",
-            "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJqZ3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/l0HlHFRbmaZtBRhXG/giphy.gif"
+            "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJqZ3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/l0HlHFRbmaZtBRhXG/giphy.gif",
+            "https://media.giphy.com/media/5VKbvrjxpVJCM/giphy.gif",
+            "https://media.giphy.com/media/ICOgUNjpvO0PC/giphy.gif",
+            "https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif",
+            "https://media.giphy.com/media/3oriO0OEd9QIDdllqo/giphy.gif",
+            "https://media.giphy.com/media/3o6Zt481isNVuQI1l6/giphy.gif",
+            "https://media.giphy.com/media/xT0xeJpnrWC4XWblEk/giphy.gif",
+            "https://media.giphy.com/media/l0MYEqEzwMWFCg8rm/giphy.gif",
+            "https://media.giphy.com/media/26u4cqiYI30juCOGY/giphy.gif",
+            "https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif",
+            "https://media.giphy.com/media/3oz8xKaR836UJOYeOc/giphy.gif",
+            "https://media.giphy.com/media/3ohs7KViF6rA4aan5u/giphy.gif",
+            "https://media.giphy.com/media/l378BzHA5FwWFXVSg/giphy.gif",
+            "https://media.giphy.com/media/26AHONQ79FdWZhAI0/giphy.gif",
+            "https://media.giphy.com/media/xUPGcguWZHRC2HyBRS/giphy.gif",
+            "https://media.giphy.com/media/3o6Zt6ML6BklcajjsA/giphy.gif",
+            "https://media.giphy.com/media/3o7qE1YN7aBOFPRw8E/giphy.gif",
+            "https://media.giphy.com/media/3orieNWi7AZMzn6ObK/giphy.gif",
+            "https://media.giphy.com/media/3o85xkQpyMlnBkpB9C/giphy.gif",
+            "https://media.giphy.com/media/l0MYB8Ory7Hqefo9a/giphy.gif",
+            "https://media.giphy.com/media/3o7abB06u9bNzA8lu8/giphy.gif",
+            "https://media.giphy.com/media/xT0GqeSlGSRQut7Ure/giphy.gif",
+            "https://media.giphy.com/media/3ohzdIuqJoo8QdKlnW/giphy.gif",
+            "https://media.giphy.com/media/26tPghhb310muUkEw/giphy.gif",
+            "https://media.giphy.com/media/3oriO7A7bt1wsEP4cw/giphy.gif"
         ];
 
         window.toggleGifPicker = () => {
@@ -2357,6 +2372,9 @@
                 if (currentUser && userMetaById[currentUser.uid]) {
                     currentUserProfile = { ...currentUserProfile, ...userMetaById[currentUser.uid] };
                     evaluateAchievements();
+                }
+                if (typeof window.renderMessages === 'function') {
+                    window.renderMessages();
                 }
             });
         }
@@ -3555,7 +3573,12 @@
             if (warns >= 2) update.muted = true;
             if (warns >= 3) update.banned = true;
             await updateDoc(userRef, update);
-            alert(`${u.username} warned. Level ${warns} punishment applied.`);
+            const punishment = warns >= 3
+                ? 'Punishment applied: Banned'
+                : warns >= 2
+                    ? 'Punishment applied: Muted'
+                    : 'Punishment applied: Warning only';
+            alert(`${u.username} warned. ${punishment}.`);
         };
 
         window.reportChatMessage = async (messageId) => {
