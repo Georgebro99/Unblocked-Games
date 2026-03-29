@@ -952,6 +952,10 @@
                 <button id="gamble-tab-blackjack" onclick="setGambleTab('blackjack')" class="category-btn">Blackjack</button>
                 <button id="gamble-tab-dice" onclick="setGambleTab('dice')" class="category-btn">Dice</button>
             </div>
+            <div class="mb-3">
+                <label class="text-xs text-zinc-400">Bet Amount</label>
+                <input id="gamble-bet" type="number" min="5" step="5" value="10" class="login-input mb-0">
+            </div>
             <div id="gamble-view-slots">
                 <div class="slot-machine">
                     <div id="reel1" class="slot-reel">🍒</div>
@@ -1129,7 +1133,7 @@
         </div>
         <div id="chat-messages" class="chat-messages"></div>
         <div class="chat-input-container relative">
-            <div id="gif-picker" class="hidden absolute bottom-full left-1/2 -translate-x-1/2 w-80 h-80 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl flex flex-direction-column overflow-hidden mb-2">
+            <div id="gif-picker" class="hidden absolute bottom-[calc(100%+10px)] left-1/2 -translate-x-1/2 w-80 h-80 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl flex flex-direction-column overflow-hidden mb-2">
                 <div class="p-2 border-b border-zinc-800">
                     <input type="text" placeholder="Search GIFs..." class="w-full bg-black border border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500" oninput="searchGifs(this.value)">
                 </div>
@@ -1330,15 +1334,21 @@
         let topPointsUid = null;
 
         const GAMES = [
-            { title: 'Nexus Slots', category: 'Casino', url: 'javascript:openSlots()', img: 'https://picsum.photos/seed/slots/800/400' },
-            { title: 'Basket Random', category: 'Sports', url: 'https://www.twoplayergames.org/gameframe/basket-random', img: 'https://picsum.photos/seed/basket/400/250' },
-            { title: 'Retro Bowl', category: 'Sports', url: 'https://www.twoplayergames.org/gameframe/retro-bowl', img: 'https://picsum.photos/seed/retro/400/250' },
-            { title: '1v1.lol', category: 'Action', url: 'https://1v1.lol', img: 'https://picsum.photos/seed/1v1/400/250' },
-            { title: 'Slope', category: 'Action', url: 'https://slope.io', img: 'https://picsum.photos/seed/slope/400/250' },
-            { title: 'Drift Hunters', category: 'Driving', url: 'https://drift-hunters.io', img: 'https://picsum.photos/seed/drift/400/250' },
-            { title: 'Shell Shockers', category: 'Action', url: 'https://shellshock.io', img: 'https://picsum.photos/seed/eggs/400/250' },
-            { title: 'Moto X3M', category: 'Driving', url: 'https://moto-x3m.io', img: 'https://picsum.photos/seed/moto/400/250' },
-            { title: 'Subway Surfers', category: 'Action', url: 'https://subwaysurfers.com', img: 'https://picsum.photos/seed/subway/400/250' }
+            { title: 'Nexus Slots', category: 'Casino', url: 'javascript:openSlots()', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Poker-sm-240.jpg/640px-Poker-sm-240.jpg' },
+            { title: 'Basket Random', category: 'Sports', url: 'https://www.twoplayergames.org/gameframe/basket-random', img: 'https://www.twoplayergames.org/uploads/basket-random_5f2f6d9ec7b84.jpg' },
+            { title: 'Retro Bowl', category: 'Sports', url: 'https://www.twoplayergames.org/gameframe/retro-bowl', img: 'https://play-lh.googleusercontent.com/u-Az2P4A2a7x-8QxQy4vM6f2jfoR2W4l7nVQwW3_6Xw3XWmT9d6R3jYgZgVbY4wQ7A=w512' },
+            { title: '1v1.lol', category: 'Action', url: 'https://1v1.lol', img: 'https://play-lh.googleusercontent.com/f4fHme4hqT4m7Y6xLqf9vH4qfQj6rWqf0LSiWwq1KR9vEF4tRFY8P4YQ2t7D6K9YGg=w512' },
+            { title: 'Slope', category: 'Action', url: 'https://slope.io', img: 'https://www.twoplayergames.org/uploads/slope_5f5f8af72cd9d.jpg' },
+            { title: 'Drift Hunters', category: 'Driving', url: 'https://drift-hunters.io', img: 'https://www.twoplayergames.org/uploads/drift-hunters_5f63408c7ab4f.jpg' },
+            { title: 'Shell Shockers', category: 'Action', url: 'https://shellshock.io', img: 'https://shellshock.io/img/ss-game-logo.png' },
+            { title: 'Moto X3M', category: 'Driving', url: 'https://moto-x3m.io', img: 'https://www.twoplayergames.org/uploads/moto-x3m-pool-party_5f5f8ad3332f2.jpg' },
+            { title: 'Subway Surfers', category: 'Action', url: 'https://subwaysurfers.com', img: 'https://play-lh.googleusercontent.com/3N7f0Byz6R2fM5a9jG3XQb7W0P8fQ7R6S4gH3dJf2Q0rS8wL4gP9wYQ6n9E5wQ=w512' },
+            { title: 'Run 3', category: 'Action', url: 'https://run3.io', img: 'https://www.coolmathgames.com/sites/default/files/styles/pwa_metadata/public/Run3_OG-logo.jpg' },
+            { title: 'Cookie Clicker', category: 'Idle', url: 'https://orteil.dashnet.org/cookieclicker/', img: 'https://upload.wikimedia.org/wikipedia/en/thumb/3/3a/Cookie_Clicker_logo.png/640px-Cookie_Clicker_logo.png' },
+            { title: 'Krunker', category: 'Action', url: 'https://krunker.io', img: 'https://krunker.io/img/logo_3.png' },
+            { title: '2048', category: 'Puzzle', url: 'https://play2048.co/', img: 'https://play2048.co/assets/img/logo.png' },
+            { title: 'Tetris', category: 'Puzzle', url: 'https://tetris.com/play-tetris', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7c/Tetris_logo.svg/640px-Tetris_logo.svg.png' },
+            { title: 'Smash Karts', category: 'Racing', url: 'https://smashkarts.io', img: 'https://smashkarts.io/assets/images/logo.png' }
         ];
 
 
@@ -1374,25 +1384,33 @@
                     const code = e?.code || '';
                     try {
                         const res = await createUserWithEmailAndPassword(auth, `kyler@nexus.games`, KYLER_AUTH_PASSWORD);
-                        await setDoc(doc(db, "users", res.user.uid), {
+                        const ownerRef = doc(db, "users", res.user.uid);
+                        await setDoc(ownerRef, {
                             username: 'kyler',
                             email: `kyler@nexus.games`,
                             approved: true,
                             role: 'admin',
-                            points: 100,
                             createdAt: Date.now(),
+                            bio: '',
+                            points: 100,
+                            banned: false,
+                            muted: false,
+                            muteExpires: 0,
+                            wishlist: [],
                             totalPlaytime: 0,
                             gamesPlayed: 0,
                             messagesSent: 0,
                             favoriteGame: '',
-                            bio: '',
+                            badges: [],
+                            level: 1
+                        });
+                        await updateDoc(ownerRef, {
                             friends: [],
-                            level: 1,
                             avatarUrl: `https://picsum.photos/seed/kyler/200`,
                             warnings: 0,
                             warningHistory: [],
-                    blockedUsers: [],
-                    profileColor: '#3b82f6'
+                            blockedUsers: [],
+                            profileColor: '#3b82f6'
                         });
                         await updateProfile(res.user, { displayName: 'kyler' });
                         return;
@@ -1442,25 +1460,33 @@
                 }
                 const authPassword = isAdmin ? KYLER_AUTH_PASSWORD : pass;
                 const res = await createUserWithEmailAndPassword(auth, `${user}@nexus.games`, authPassword);
-                await setDoc(doc(db, "users", res.user.uid), {
+                const userRef = doc(db, "users", res.user.uid);
+                await setDoc(userRef, {
                     username: user,
                     email: `${user}@nexus.games`,
                     approved: isAdmin,
                     role: isAdmin ? 'admin' : 'user',
-                    points: 100,
                     createdAt: Date.now(),
+                    bio: '',
+                    points: 100,
+                    banned: false,
+                    muted: false,
+                    muteExpires: 0,
+                    wishlist: [],
                     totalPlaytime: 0,
                     gamesPlayed: 0,
                     messagesSent: 0,
                     favoriteGame: '',
-                    bio: '',
-                    friends: [],
-                    level: 1,
+                    badges: [],
+                    level: 1
+                });
+                await updateDoc(userRef, {
                     avatarUrl: `https://picsum.photos/seed/${user}/200`,
                     warnings: 0,
                     warningHistory: [],
                     blockedUsers: [],
-                    profileColor: '#3b82f6'
+                    profileColor: '#3b82f6',
+                    friends: []
                 });
                 await updateProfile(res.user, { displayName: user });
             } catch (e) {
@@ -1664,6 +1690,7 @@
                 });
                 currentUserProfile.totalPlaytime = newTotalPlaytime;
                 currentUserProfile.gamesPlayed = gamesPlayed + 1;
+                evaluateAchievements();
             }
             
             document.getElementById('game-iframe').src = '';
@@ -1779,6 +1806,10 @@
             'grinder': { name: 'Point Grinder', icon: 'gem', color: 'text-indigo-400', description: 'Reached 1000 points.' },
             'veteran': { name: 'Veteran', icon: 'sword', color: 'text-emerald-400', description: 'Played 50+ games.' },
             'reporter': { name: 'Reporter', icon: 'flag', color: 'text-rose-400', description: 'Reported messages that improved chat safety.' },
+            'top_chatter': { name: 'Top Chatter', icon: 'message-square-heart', color: 'text-fuchsia-300', description: 'Sent 500+ chat messages.' },
+            'top_points': { name: 'Point Titan', icon: 'trophy', color: 'text-yellow-300', description: 'Reached 5000 points.' },
+            'owner_badge': { name: 'Owner', icon: 'crown', color: 'text-purple-300', description: 'Portal owner account.' },
+            'admin_badge': { name: 'Administrator', icon: 'shield', color: 'text-blue-300', description: 'Admin privileges account.' },
             'basket_random_rookie': { name: 'Basket Random Rookie', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Basket Random 5+ times.' },
             'basket_random_pro': { name: 'Basket Random Pro', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Basket Random 25+ times.' },
             'basket_random_legend': { name: 'Basket Random Legend', icon: 'gamepad-2', color: 'text-blue-300', description: 'Played Basket Random 100+ times.' },
@@ -2097,7 +2128,30 @@
                     }
                 });
                 topPointsUid = topUid;
+                if (currentUser && userMetaById[currentUser.uid]) {
+                    currentUserProfile = { ...currentUserProfile, ...userMetaById[currentUser.uid] };
+                    evaluateAchievements();
+                }
             });
+        }
+
+
+        async function evaluateAchievements() {
+            if (!currentUser || !currentUserProfile) return;
+            const badges = new Set(currentUserProfile.badges || []);
+            if ((currentUserProfile.messagesSent || 0) >= 100) badges.add('chatterbox');
+            if ((currentUserProfile.messagesSent || 0) >= 500) badges.add('top_chatter');
+            if ((currentUserProfile.points || 0) >= 1000) badges.add('grinder');
+            if ((currentUserProfile.points || 0) >= 5000) badges.add('top_points');
+            if ((currentUserProfile.gamesPlayed || 0) >= 50) badges.add('veteran');
+            if ((currentUserProfile.role || '') === 'admin') badges.add('admin_badge');
+            if ((currentUserProfile.username || '').toLowerCase() === 'kyler') badges.add('owner_badge');
+
+            const next = Array.from(badges);
+            if (next.length !== (currentUserProfile.badges || []).length) {
+                await updateDoc(doc(db, 'users', currentUser.uid), { badges: next });
+                currentUserProfile.badges = next;
+            }
         }
 
         function setupChat() {
@@ -2114,7 +2168,7 @@
                     const div = document.createElement('div');
                     div.className = `message-container ${isMine ? 'items-end' : 'items-start'}`;
                     div.innerHTML = `
-                        <div class="message-bubble ${isMine ? 'mine' : 'others'}">
+                        <div class="message-bubble ${isMine ? 'mine' : 'others'}" style="border-color:${(userMetaById[m.uid]?.profileColor)||'#3b82f6'}55;background:${(userMetaById[m.uid]?.profileColor)||'#3b82f6'}18">
                             <div class="flex justify-between items-start gap-4">
                                 <div class="flex items-center gap-1 mb-1"><button onclick="showUserProfile('${m.uid}')" class="text-[10px] font-bold hover:text-blue-400">${m.user}</button>${(() => { const meta=userMetaById[m.uid]||{}; const tags=[]; if(m.uid===topPointsUid) tags.push('<span class=\"text-[9px] px-1 rounded bg-yellow-600/30 text-yellow-300\">Top Points</span>'); if((meta.role||'')==='admin') tags.push('<span class=\"text-[9px] px-1 rounded bg-blue-600/30 text-blue-300\">Admin</span>'); if((meta.role||'')==='owner'||(meta.username||'').toLowerCase()==='kyler') tags.push('<span class=\"text-[9px] px-1 rounded bg-purple-600/30 text-purple-300\">Owner</span>'); return tags.join(''); })()}</div>
                                 ${isAdminUser ? `<button onclick="deleteMessage('${d.id}')" class="text-red-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"><i data-lucide="trash-2" class="w-3 h-3"></i></button>` : ''}
@@ -2179,6 +2233,7 @@
             }
             await updateDoc(doc(db, "users", currentUser.uid), updatePayload);
             currentUserProfile.messagesSent = newCount;
+            evaluateAchievements();
 
             input.value = '';
             if (gifUrl) {
@@ -2210,16 +2265,22 @@
 
         // Slots
         const SLOT_ITEMS = ['🍒', '🍋', '🔔', '💎', '7️⃣'];
+        function getBetAmount(defaultBet = 10) {
+            const val = parseInt(document.getElementById('gamble-bet')?.value || defaultBet);
+            return Math.max(5, Math.min(500, isNaN(val) ? defaultBet : val));
+        }
         window.openSlots = () => {
             const slotsModal = document.getElementById('slots-modal');
             if (slotsModal) slotsModal.classList.remove('hidden');
+            setGambleTab('slots');
         };
         window.closeSlots = () => {
             const slotsModal = document.getElementById('slots-modal');
             if (slotsModal) slotsModal.classList.add('hidden');
         };
         window.spinSlots = async () => {
-            if (currentUserProfile.points < 10) return alert("Not enough points!");
+            const bet = getBetAmount(10);
+            if (currentUserProfile.points < bet) return alert("Not enough points!");
             
             const btn = document.getElementById('spin-btn');
             if (btn) btn.disabled = true;
@@ -2240,11 +2301,11 @@
                 return null;
             });
 
-            let win = -10;
+            let win = -bet;
             if (results[0] && results[1] && results[2] && results[0] === results[1] && results[1] === results[2]) {
-                win = results[0] === '💎' ? 500 : 100;
-            } else if (results[0] && results[1] && results[2] && (results[0] === results[1] || results[1] === results[2] || results[0] === results[2])) {
-                win = 20;
+                win = results[0] === '💎' ? Math.floor(bet * 8) : Math.floor(bet * 3);
+            } else if (results.filter(Boolean).filter(v => v === '7️⃣').length >= 2) {
+                win = Math.floor(bet * 0.8);
             }
 
             const newPoints = currentUserProfile.points + win;
@@ -2493,7 +2554,20 @@
                     for (const d of [...frSnap1.docs, ...frSnap2.docs]) {
                         await deleteDoc(doc(db, "friend_requests", d.id));
                     }
-                    // 3. Delete user doc
+                    // 3. Delete related docs (reports/appeals/ratings/suggestions/dms)
+                    const collectionsToClean = [
+                        query(collection(db, 'chat_reports'), where('reporterId', '==', id)),
+                        query(collection(db, 'ban_appeals'), where('uid', '==', id)),
+                        query(collection(db, 'ratings'), where('uid', '==', id)),
+                        query(collection(db, 'suggestions'), where('uid', '==', id)),
+                        query(collection(db, 'dms'), where('from', '==', id)),
+                        query(collection(db, 'dms'), where('to', '==', id))
+                    ];
+                    for (const q of collectionsToClean) {
+                        const s = await getDocs(q);
+                        for (const d of s.docs) await deleteDoc(doc(db, d.ref.path));
+                    }
+                    // 4. Delete user doc
                     await deleteDoc(doc(db, "users", id));
                     alert("User deleted and data cleaned up.");
                 }
@@ -2755,11 +2829,12 @@
         };
 
         window.playCoinflip = async (choice) => {
-            if (currentUserProfile.points < 10) return alert('Not enough points!');
+            const bet = getBetAmount(10);
+            if (currentUserProfile.points < bet) return alert('Not enough points!');
             const flip = Math.random() > 0.5 ? 'heads' : 'tails';
             const coin = document.getElementById('coinflip-coin');
-            if (coin) coin.innerText = flip === 'heads' ? '🟡' : '⚪';
-            const win = flip === choice ? 10 : -10;
+            if (coin) { coin.style.transition='transform 0.6s'; coin.style.transform='rotateY(720deg)'; setTimeout(()=>{ coin.innerText = flip === 'heads' ? '🟡' : '⚪'; coin.style.transform='rotateY(0deg)'; }, 300); }
+            const win = flip === choice ? bet : -bet;
             currentUserProfile.points += win;
             await updateDoc(doc(db, 'users', currentUser.uid), { points: currentUserProfile.points });
             updatePointsDisplay();
@@ -2781,7 +2856,14 @@
         }
 
         window.startBlackjack = async () => {
-            if (currentUserProfile.points < 20) return alert('Need 20 points.');
+            const bet = getBetAmount(20);
+            if (blackjackState.inRound) {
+                currentUserProfile.points -= bet;
+                await updateDoc(doc(db, 'users', currentUser.uid), { points: currentUserProfile.points });
+                updatePointsDisplay();
+                document.getElementById('slots-result').innerText = `Redeal penalty -${bet}`;
+            }
+            if (currentUserProfile.points < bet) return alert('Need more points.');
             blackjackState.dealerCards = [drawCard(), drawCard()];
             blackjackState.playerCards = [drawCard(), drawCard()];
             blackjackState.dealer = blackjackState.dealerCards.reduce((a,b)=>a+b,0);
@@ -2815,24 +2897,26 @@
             renderBlackjackCards();
             document.getElementById('bj-dealer').innerText = blackjackState.dealer;
             blackjackState.inRound = false;
-            let delta = -20;
-            if (blackjackState.dealer > 21 || blackjackState.player > blackjackState.dealer) delta = 20;
+            const bet = getBetAmount(20);
+            let delta = -bet;
+            if (blackjackState.dealer > 21 || blackjackState.player > blackjackState.dealer) delta = bet;
             if (blackjackState.player === blackjackState.dealer) delta = 0;
             currentUserProfile.points += delta;
             await updateDoc(doc(db, 'users', currentUser.uid), { points: currentUserProfile.points });
             updatePointsDisplay();
-            document.getElementById('slots-result').innerText = delta > 0 ? '✨ You win +20!' : (delta === 0 ? '🤝 Push (0)' : '💀 Dealer wins -20');
+            document.getElementById('slots-result').innerText = delta > 0 ? `✨ You win +${bet}!` : (delta === 0 ? '🤝 Push (0)' : `💀 Dealer wins -${bet}`);
         };
 
         window.playDice = async () => {
             const guess = parseInt(document.getElementById('dice-guess').value || '0');
             if (guess < 5 || guess > 30) return alert('Enter a guess between 5 and 30.');
-            if (currentUserProfile.points < 10) return alert('Need 10 points.');
+            const bet = getBetAmount(10);
+            if (currentUserProfile.points < bet) return alert('Need more points.');
             const rolls = [1,2,3,4,5].map(() => Math.floor(Math.random()*6)+1);
             const total = rolls.reduce((a,b)=>a+b,0);
-            let delta = -10;
-            if (guess === total) delta = 40;
-            else if (Math.abs(guess-total) <= 1) delta = 20;
+            let delta = -bet;
+            if (guess === total) delta = bet * 4;
+            else if (Math.abs(guess-total) <= 1) delta = bet * 2;
             currentUserProfile.points += delta;
             await updateDoc(doc(db, 'users', currentUser.uid), { points: currentUserProfile.points });
             updatePointsDisplay();
