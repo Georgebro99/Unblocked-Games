@@ -819,6 +819,9 @@
                     <button onclick="toggleSocialModal()" class="text-zinc-500 hover:text-blue-400 transition-colors p-2" title="Social Hub">
                         <i data-lucide="users" class="w-5 h-5"></i>
                     </button>
+                    <button onclick="toggleCommunityModal()" class="text-zinc-500 hover:text-violet-400 transition-colors p-2" title="Community">
+                        <i data-lucide="message-circle-more" class="w-5 h-5"></i>
+                    </button>
                     <button onclick="showOwnProfile()" class="text-zinc-500 hover:text-blue-400 transition-colors p-2" title="My Profile">
                         <i data-lucide="user" class="w-5 h-5"></i>
                     </button>
@@ -946,11 +949,11 @@
                 <h2 class="text-2xl font-black">Nexus <span class="text-yellow-500">Casino</span></h2>
                 <button onclick="closeSlots()" class="text-zinc-500 hover:text-white"><i data-lucide="x" class="w-6 h-6"></i></button>
             </div>
-            <div class="flex gap-2 mb-4 justify-center flex-wrap">
-                <button id="gamble-tab-slots" onclick="setGambleTab('slots')" class="category-btn active">Slots</button>
-                <button id="gamble-tab-coinflip" onclick="setGambleTab('coinflip')" class="category-btn">Coinflip</button>
-                <button id="gamble-tab-blackjack" onclick="setGambleTab('blackjack')" class="category-btn">Blackjack</button>
-                <button id="gamble-tab-dice" onclick="setGambleTab('dice')" class="category-btn">Dice</button>
+            <div class="flex gap-1 mb-4 justify-center flex-nowrap overflow-x-auto">
+                <button id="gamble-tab-slots" onclick="setGambleTab('slots')" class="category-btn !px-2 !py-1 text-[10px] active">Slots</button>
+                <button id="gamble-tab-coinflip" onclick="setGambleTab('coinflip')" class="category-btn !px-2 !py-1 text-[10px]">Coinflip</button>
+                <button id="gamble-tab-blackjack" onclick="setGambleTab('blackjack')" class="category-btn !px-2 !py-1 text-[10px]">Blackjack</button>
+                <button id="gamble-tab-dice" onclick="setGambleTab('dice')" class="category-btn !px-2 !py-1 text-[10px]">Dice</button>
             </div>
             <div class="mb-3">
                 <label class="text-xs text-zinc-400">Bet Amount</label>
@@ -1098,6 +1101,22 @@
         </div>
     </div>
 
+
+    <div id="community-modal" class="hidden overlay-panel">
+        <div class="panel-card max-w-2xl">
+            <div class="flex justify-between items-center p-6 border-b border-zinc-800">
+                <h2 class="text-2xl font-black tracking-tighter">Community <span class="text-violet-400">Threads</span></h2>
+                <button onclick="toggleCommunityModal()" class="text-zinc-500 hover:text-white"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <input id="community-title" class="login-input mb-0" placeholder="Thread title">
+                <textarea id="community-body" class="login-input h-24 mb-0" placeholder="Share something..."></textarea>
+                <button onclick="createCommunityPost()" class="login-btn bg-violet-600">Post Thread</button>
+                <div id="community-posts" class="space-y-3 max-h-[45vh] overflow-y-auto"></div>
+            </div>
+        </div>
+    </div>
+
         <div id="update-log-modal" class="hidden overlay-panel">
             <div class="panel-card max-w-lg">
                 <div class="flex justify-between items-center p-6 border-b border-zinc-800">
@@ -1234,6 +1253,8 @@
                             render();
                             setupChat();
                             setupUserMeta();
+                            setupAnnouncementListener();
+                            loadCommunityPosts();
                             loadSlowmodeSettings();
                         } else if (currentUserProfile.banned) {
                             if (document.getElementById('login-screen')) document.getElementById('login-screen').style.display = 'none';
@@ -1402,13 +1423,9 @@
                             messagesSent: 0,
                             favoriteGame: '',
                             badges: [],
-                            level: 1
-                        });
-                        await updateDoc(ownerRef, {
+                            level: 1,
                             friends: [],
                             avatarUrl: `https://picsum.photos/seed/kyler/200`,
-                            warnings: 0,
-                            warningHistory: [],
                             blockedUsers: [],
                             profileColor: '#3b82f6'
                         });
@@ -1478,12 +1495,8 @@
                     messagesSent: 0,
                     favoriteGame: '',
                     badges: [],
-                    level: 1
-                });
-                await updateDoc(userRef, {
+                    level: 1,
                     avatarUrl: `https://picsum.photos/seed/${user}/200`,
-                    warnings: 0,
-                    warningHistory: [],
                     blockedUsers: [],
                     profileColor: '#3b82f6',
                     friends: []
@@ -1678,6 +1691,12 @@
             document.getElementById('main-ui').style.display = 'none';
         };
 
+        window.reloadGame = () => {
+            const iframe = document.getElementById('game-iframe');
+            if (!iframe || !iframe.src) return;
+            iframe.src = iframe.src;
+        };
+
         window.closeGame = async () => {
             if (playStartTime && currentGameTitle) {
                 const duration = Math.floor((Date.now() - playStartTime) / 1000); // seconds
@@ -1701,6 +1720,11 @@
         };
 
         const MOCK_GIFS = [
+            "https://media.giphy.com/media/26ufdipQqU2lhNA4g/giphy.gif",
+            "https://media.giphy.com/media/l3vR85PnGsBwu1PFK/giphy.gif",
+            "https://media.giphy.com/media/3o7aD2saalBwwftBIY/giphy.gif",
+            "https://media.giphy.com/media/xT9IgG50Fb7Mi0prBC/giphy.gif",
+            "https://media.giphy.com/media/13HgwGsXF0aiGY/giphy.gif",
             "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJqZ3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/3o7TKMGpxx66d3195u/giphy.gif",
             "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJqZ3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/l0HlHFRbmaZtBRhXG/giphy.gif",
             "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJqZ3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/3o7TKVUn7iM8FMEU24/giphy.gif",
@@ -2400,6 +2424,58 @@
             loadApprovals();
         };
 
+
+        function setupAnnouncementListener() {
+            onSnapshot(doc(db, 'app_state', 'announcement'), (snap) => {
+                const bar = document.getElementById('announcement-bar');
+                if (!bar) return;
+                if (!snap.exists()) {
+                    bar.classList.add('hidden');
+                    return;
+                }
+                const data = snap.data();
+                if (!data.message || (data.expiresAt && Date.now() > data.expiresAt)) {
+                    bar.classList.add('hidden');
+                    return;
+                }
+                bar.innerText = `📢 ${data.message}`;
+                bar.classList.remove('hidden');
+            });
+        }
+
+        window.toggleCommunityModal = () => {
+            const modal = document.getElementById('community-modal');
+            if (!modal) return;
+            modal.classList.toggle('hidden');
+            if (!modal.classList.contains('hidden')) loadCommunityPosts();
+        };
+
+        window.createCommunityPost = async () => {
+            const title = document.getElementById('community-title').value.trim();
+            const body = document.getElementById('community-body').value.trim();
+            if (!title || !body) return alert('Add a title and message.');
+            await addDoc(collection(db, 'community_posts'), {
+                uid: currentUser.uid,
+                username: currentUserProfile.username,
+                title,
+                body,
+                createdAt: Date.now()
+            });
+            document.getElementById('community-title').value = '';
+            document.getElementById('community-body').value = '';
+            loadCommunityPosts();
+        };
+
+        async function loadCommunityPosts() {
+            const wrap = document.getElementById('community-posts');
+            if (!wrap || !currentUser) return;
+            const snap = await getDocs(query(collection(db, 'community_posts'), orderBy('createdAt', 'desc'), limit(50)));
+            wrap.innerHTML = snap.docs.map(d => {
+                const p = d.data();
+                return `<div class="p-3 rounded-xl bg-zinc-900 border border-zinc-800"><div class="font-bold">${p.title}</div><div class="text-xs text-zinc-500 mb-2">by ${p.username}</div><div class="text-sm text-zinc-300">${p.body}</div></div>`;
+            }).join('') || '<div class="text-zinc-500 text-sm">No threads yet.</div>';
+        }
+
         window.serverCommand = async (cmd) => {
             if (cmd === 'clear_chat') {
                 const snap = await getDocs(collection(db, "messages"));
@@ -2420,11 +2496,11 @@
             } else if (cmd === 'broadcast') {
                 const msg = prompt("Enter broadcast message:");
                 if (msg) {
-                    await addDoc(collection(db, "messages"), {
-                        user: "SYSTEM",
-                        text: "📢 " + msg,
-                        uid: "system",
-                        timestamp: Date.now()
+                    await setDoc(doc(db, 'app_state', 'announcement'), {
+                        message: msg,
+                        createdAt: Date.now(),
+                        by: currentUserProfile.username,
+                        expiresAt: Date.now() + 1000 * 60 * 10
                     });
                 }
             }
