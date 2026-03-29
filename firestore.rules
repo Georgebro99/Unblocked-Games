@@ -105,7 +105,9 @@ service cloud.firestore {
     match /messages/{messageId} {
       allow read: if isApproved();
       allow create: if isApproved() && isValidMessage(request.resource.data);
-      allow update: if isApproved() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions']);
+      allow update: if isApproved() && 
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions']) &&
+        request.resource.data.reactions.diff(resource.data.reactions).affectedKeys().hasOnly([request.auth.uid]);
       allow delete: if isAuthenticated() && (resource.data.uid == request.auth.uid || isAdmin());
     }
     
@@ -118,8 +120,8 @@ service cloud.firestore {
                         (request.auth.token.email == "kyler@nexus.games" && request.resource.data.role == 'admin' && request.resource.data.approved == true)
                       );
       allow update: if isAuthenticated() && (
-        (isOwner(userId) && request.resource.data.approved == resource.data.approved && request.resource.data.role == resource.data.role && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['username', 'email', 'approved', 'role', 'createdAt', 'bio', 'favoriteGame', 'totalPlaytime', 'status', 'profileColor', 'points', 'messagesSent', 'gamesPlayed']) && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['points']) || request.resource.data.points <= resource.data.points + 5) && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['messagesSent']) || request.resource.data.messagesSent == resource.data.messagesSent + 1) && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['gamesPlayed']) || request.resource.data.gamesPlayed == resource.data.gamesPlayed + 1)) ||
-        (isAdmin())
+        (isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.approved == resource.data.approved && request.resource.data.role == resource.data.role && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['username', 'email', 'approved', 'role', 'createdAt', 'bio', 'favoriteGame', 'totalPlaytime', 'status', 'profileColor', 'points', 'messagesSent', 'gamesPlayed']) && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['points']) || request.resource.data.points <= resource.data.points + 5) && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['messagesSent']) || request.resource.data.messagesSent == resource.data.messagesSent + 1) && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['gamesPlayed']) || request.resource.data.gamesPlayed == resource.data.gamesPlayed + 1)) ||
+        (isAdmin() && isValidUser(request.resource.data))
       );
     }
 

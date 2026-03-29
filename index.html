@@ -2468,16 +2468,19 @@
         }
 
         window.voteSuggestion = async (id, delta) => {
+            if (!currentUser) return;
             const savedVotes2 = JSON.parse(localStorage.getItem('nexus_suggestion_votes') || '{}');
             const currentVote = savedVotes2[id] || 0;
             try {
                 const suggDoc = await getDoc(doc(db, "game_suggestions", id));
                 if (!suggDoc.exists()) return;
-                let newVotes = suggDoc.data().votes || 0;
-                if (currentVote === delta) { newVotes -= delta; delete savedVotes2[id]; }
-                else if (currentVote === 0) { newVotes += delta; savedVotes2[id] = delta; }
-                else { newVotes += (delta * 2); savedVotes2[id] = delta; }
-                await updateDoc(doc(db, "game_suggestions", id), { votes: newVotes });
+                const data = suggDoc.data();
+                let newVotes = data.votes || 0;
+                const voters = data.voters || {};
+                if (currentVote === delta) { newVotes -= delta; delete savedVotes2[id]; delete voters[currentUser.uid]; }
+                else if (currentVote === 0) { newVotes += delta; savedVotes2[id] = delta; voters[currentUser.uid] = delta; }
+                else { newVotes += (delta * 2); savedVotes2[id] = delta; voters[currentUser.uid] = delta; }
+                await updateDoc(doc(db, "game_suggestions", id), { votes: newVotes, voters });
                 localStorage.setItem('nexus_suggestion_votes', JSON.stringify(savedVotes2));
                 loadSuggestions();
             } catch (error) { console.error('Vote suggestion error:', error); }
