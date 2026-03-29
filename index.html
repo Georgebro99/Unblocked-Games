@@ -901,6 +901,11 @@
                         <input id="slowmode-bypass" type="text" class="login-input mb-0" placeholder="kyler, moderator">
                         <button onclick="saveSlowmodeSettings()" class="login-btn">Save Slowmode</button>
                     </div>
+                    <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-3">
+                        <h3 class="font-black">Featured Game Override</h3>
+                        <select id="featured-game-select" class="login-input mb-0"></select>
+                        <button onclick="saveFeaturedGameOverride()" class="login-btn bg-violet-600">Save Featured Game</button>
+                    </div>
                 </div>
                 <div id="admin-view-commands" class="hidden">
                     <div class="space-y-4">
@@ -1426,6 +1431,9 @@
         let topPointsUid = null;
         let replyToMessage = null;
         let currentShopTab = 'showcases';
+        let featuredGameOverride = '';
+        let activeThreadId = null;
+        let lastMessagePointAt = 0;
 
         const GAMES = [
             { title: 'Nexus Slots', category: 'Casino', url: 'javascript:openSlots()', img: 'https://www.google.com/s2/favicons?domain=javascript:openSlots()&sz=256' },
@@ -1443,6 +1451,11 @@
             { title: '2048', category: 'Puzzle', url: 'https://play2048.co/', img: 'https://www.google.com/s2/favicons?domain=play2048.co&sz=256' },
             { title: 'Tetris', category: 'Puzzle', url: 'https://tetris.com/play-tetris', img: 'https://www.google.com/s2/favicons?domain=tetris.com&sz=256' },
             { title: 'Smash Karts', category: 'Racing', url: 'https://smashkarts.io', img: 'https://www.google.com/s2/favicons?domain=smashkarts.io&sz=256' },
+            { title: 'Vex 7', category: 'Action', url: 'https://www.twoplayergames.org/gameframe/vex-7', img: 'https://www.google.com/s2/favicons?domain=www.twoplayergames.org&sz=256' },
+            { title: 'Tunnel Rush', category: 'Action', url: 'https://www.twoplayergames.org/gameframe/tunnel-rush', img: 'https://www.google.com/s2/favicons?domain=www.twoplayergames.org&sz=256' },
+            { title: 'Chess', category: 'Strategy', url: 'https://www.chess.com/play/computer', img: 'https://www.google.com/s2/favicons?domain=chess.com&sz=256' },
+            { title: 'Minesweeper', category: 'Puzzle', url: 'https://minesweeperonline.com/', img: 'https://www.google.com/s2/favicons?domain=minesweeperonline.com&sz=256' },
+            { title: 'Agar.io', category: 'Action', url: 'https://agar.io', img: 'https://www.google.com/s2/favicons?domain=agar.io&sz=256' },
         ];
 
 
@@ -1575,7 +1588,8 @@
 
             // Sort by rating to find featured
             const sorted = [...gamesWithRatings].sort((a, b) => b.avg - a.avg);
-            const featuredGame = sorted[0]?.avg > 0 ? sorted[0] : null;
+            const overrideGame = gamesWithRatings.find(g => g.title === featuredGameOverride);
+            const featuredGame = overrideGame || (sorted[0]?.avg > 0 ? sorted[0] : null);
 
             // Categories
             const categories = ['All', ...new Set(GAMES.map(g => g.category))];
@@ -1754,6 +1768,12 @@
                 currentUserProfile.totalPlaytime = newTotalPlaytime;
                 currentUserProfile.gamesPlayed = gamesPlayed + 1;
                 evaluateAchievements();
+                if ((gamesPlayed + 1) % 10 === 0) {
+                    const bonusPoints = (currentUserProfile.points || 0) + 25;
+                    await updateDoc(doc(db, "users", currentUser.uid), { points: bonusPoints });
+                    currentUserProfile.points = bonusPoints;
+                    updatePointsDisplay();
+                }
             }
             
             document.getElementById('game-iframe').src = '';
@@ -2123,6 +2143,9 @@
                         <button onclick="openDM('${f.id}', '${f.name}')" class="text-blue-500 hover:text-blue-400 p-2 rounded-lg hover:bg-blue-500/10 transition-colors">
                             <i data-lucide="message-square" class="w-5 h-5"></i>
                         </button>
+                        <button onclick="giftPoints('${f.id}','${f.name}')" class="text-emerald-400 hover:text-emerald-300 p-2 rounded-lg hover:bg-emerald-500/10 transition-colors">
+                            <i data-lucide="gift" class="w-5 h-5"></i>
+                        </button>
                         <button onclick="removeFriend('${f.id}')" class="text-red-500 hover:text-red-400 p-2 rounded-lg hover:bg-red-500/10 transition-colors">
                             <i data-lucide="user-minus" class="w-5 h-5"></i>
                         </button>
@@ -2146,6 +2169,20 @@
             } catch (e) {
                 handleFirestoreError(e, OperationType.DELETE, 'friend_requests');
             }
+        };
+
+        window.giftPoints = async (friendId, friendName) => {
+            const amount = parseInt(prompt(`Gift how many points to ${friendName}?`, '25') || '0');
+            if (!amount || amount <= 0) return;
+            if ((currentUserProfile.points || 0) < amount) return alert('Not enough points.');
+            const friendRef = doc(db, 'users', friendId);
+            const friendDoc = await getDoc(friendRef);
+            if (!friendDoc.exists()) return alert('Friend account not found.');
+            await updateDoc(doc(db, 'users', currentUser.uid), { points: (currentUserProfile.points || 0) - amount });
+            await updateDoc(friendRef, { points: (friendDoc.data().points || 0) + amount });
+            currentUserProfile.points = (currentUserProfile.points || 0) - amount;
+            updatePointsDisplay();
+            alert(`Gifted ${amount} points to ${friendName}.`);
         };
 
         async function loadRequests() {
@@ -2320,6 +2357,13 @@
             
             const newCount = (currentUserProfile.messagesSent || 0) + 1;
             const updatePayload = { messagesSent: newCount };
+            const nonSpam = (text || '').trim().length >= 10 && (Date.now() - lastMessagePointAt) > 15000;
+            if (nonSpam) {
+                updatePayload.points = (currentUserProfile.points || 0) + 1;
+                currentUserProfile.points = updatePayload.points;
+                lastMessagePointAt = Date.now();
+                updatePointsDisplay();
+            }
             if (newCount >= 100) {
                 const badges = currentUserProfile.badges || [];
                 if (!badges.includes('chatterbox')) updatePayload.badges = [...badges, 'chatterbox'];
@@ -2485,13 +2529,22 @@
             list.innerHTML = snap.docs.map(d => `
                 <div class="flex justify-between items-center p-3 bg-zinc-800 rounded-lg">
                     <span>${d.data().username}</span>
-                    <button onclick="approveUser('${d.id}')" class="bg-blue-600 px-3 py-1 rounded">Approve</button>
+                    <div class="flex gap-2">
+                        <button onclick="approveUser('${d.id}')" class="bg-blue-600 px-3 py-1 rounded">Approve</button>
+                        <button onclick="denyUser('${d.id}')" class="bg-red-600 px-3 py-1 rounded">Deny</button>
+                    </div>
                 </div>
             `).join('');
         }
 
         window.approveUser = async (id) => {
             await updateDoc(doc(db, "users", id), { approved: true });
+            loadApprovals();
+        };
+
+        window.denyUser = async (id) => {
+            if (!confirm('Deny and remove this pending account profile?')) return;
+            await deleteDoc(doc(db, "users", id));
             loadApprovals();
         };
 
@@ -2567,15 +2620,60 @@
                 const thread = (p.text || '').replace('[THREAD] ', '');
                 const [title, ...rest] = thread.split('\n');
                 const replies = p.replies || [];
+                const reactions = p.reactions || {};
+                const expanded = activeThreadId === d.id;
                 return `<div class="p-3 rounded-xl bg-zinc-900 border border-zinc-800">
-                    <div class="font-bold">${title || 'Thread'}</div>
+                    <button onclick="openThread('${d.id}')" class="font-bold hover:text-violet-300 text-left w-full">${title || 'Thread'}</button>
                     <div class="text-xs text-zinc-500 mb-2">by ${p.username}</div>
-                    <div class="text-sm text-zinc-300 mb-2">${rest.join('\n')}</div>
-                    <div class="space-y-1 mb-2">${replies.map(r => `<div class="text-xs text-zinc-400">↪ <span class="text-zinc-300">${r.user}</span>: ${r.text}</div>`).join('')}</div>
-                    <button onclick="replyToThread('${d.id}')" class="text-xs text-violet-300 hover:underline">Reply</button>
+                    <div class="text-sm text-zinc-300 mb-2 ${expanded ? '' : 'line-clamp-2'}">${rest.join('\n')}</div>
+                    <div class="flex gap-1 mb-2">
+                        ${['👍','🔥','😂','❤️'].map(e=>`<button onclick="toggleThreadReaction('${d.id}','${e}')" class="text-xs px-1.5 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700">${e} ${(reactions[e]||[]).length}</button>`).join('')}
+                        ${p.uid === currentUser.uid || currentUserProfile.role === 'admin' ? `<button onclick="deleteThread('${d.id}')" class="text-xs px-1.5 py-0.5 rounded bg-red-900/40 text-red-300">Delete</button>` : ''}
+                    </div>
+                    <div class="space-y-1 mb-2">${replies.map((r,idx) => `<div class="text-xs text-zinc-400">↪ <span class="text-zinc-300">${r.user}</span>: ${r.text} <button onclick="toggleThreadReplyReaction('${d.id}', ${idx}, '❤️')" class="text-[10px] text-pink-300">❤️ ${(r.reactions?.['❤️']||[]).length}</button></div>`).join('')}</div>
+                    ${expanded ? `<button onclick="replyToThread('${d.id}')" class="text-xs text-violet-300 hover:underline">Reply</button>` : '<span class="text-[10px] text-zinc-500">Open thread to reply</span>'}
                 </div>`;
             }).join('') || '<div class="text-zinc-500 text-sm">No threads yet.</div>';
         }
+
+        window.openThread = (id) => {
+            activeThreadId = activeThreadId === id ? null : id;
+            loadCommunityPosts();
+        };
+
+        window.toggleThreadReaction = async (id, emoji) => {
+            const ref = doc(db, 'suggestions', id);
+            const snap = await getDoc(ref);
+            if (!snap.exists()) return;
+            const reactions = snap.data().reactions || {};
+            const list = reactions[emoji] || [];
+            const has = list.includes(currentUser.uid);
+            reactions[emoji] = has ? list.filter(uid => uid !== currentUser.uid) : [...list, currentUser.uid];
+            await updateDoc(ref, { reactions });
+            loadCommunityPosts();
+        };
+
+        window.toggleThreadReplyReaction = async (id, index, emoji) => {
+            const ref = doc(db, 'suggestions', id);
+            const snap = await getDoc(ref);
+            if (!snap.exists()) return;
+            const replies = snap.data().replies || [];
+            if (!replies[index]) return;
+            const reactions = replies[index].reactions || {};
+            const list = reactions[emoji] || [];
+            const has = list.includes(currentUser.uid);
+            reactions[emoji] = has ? list.filter(uid => uid !== currentUser.uid) : [...list, currentUser.uid];
+            replies[index].reactions = reactions;
+            await updateDoc(ref, { replies });
+            loadCommunityPosts();
+        };
+
+        window.deleteThread = async (id) => {
+            if (!confirm('Delete this thread?')) return;
+            await deleteDoc(doc(db, 'suggestions', id));
+            if (activeThreadId === id) activeThreadId = null;
+            loadCommunityPosts();
+        };
 
         window.replyToThread = async (id) => {
             const text = prompt('Reply to this thread:');
@@ -2784,7 +2882,17 @@
             { id: 'theme_lime', name: 'Lime Accent', cost: 260, color: '#84cc16', tab: 'colors' },
             { id: 'bg_night_city', name: 'Night City Theme', cost: 520, bg: 'linear-gradient(135deg,#111827,#312e81)', tab: 'themes' },
             { id: 'bg_candy', name: 'Candy Theme', cost: 520, bg: 'linear-gradient(135deg,#f472b6,#fb7185)', tab: 'themes' },
-            { id: 'bg_matrix', name: 'Matrix Theme', cost: 520, bg: 'linear-gradient(135deg,#052e16,#14532d)', tab: 'themes' }
+            { id: 'bg_matrix', name: 'Matrix Theme', cost: 520, bg: 'linear-gradient(135deg,#052e16,#14532d)', tab: 'themes' },
+            { id: 'bg_arctic', name: 'Arctic Theme', cost: 540, bg: 'linear-gradient(135deg,#0f172a,#1e3a8a)', tab: 'themes' },
+            { id: 'bg_lava', name: 'Lava Theme', cost: 540, bg: 'linear-gradient(135deg,#450a0a,#b91c1c)', tab: 'themes' },
+            { id: 'bg_cyber', name: 'Cyber Theme', cost: 600, bg: 'linear-gradient(135deg,#4c1d95,#0f172a)', tab: 'themes' },
+            { id: 'theme_sky', name: 'Sky Accent', cost: 260, color: '#0ea5e9', tab: 'colors' },
+            { id: 'theme_mint', name: 'Mint Accent', cost: 260, color: '#10b981', tab: 'colors' },
+            { id: 'theme_orchid', name: 'Orchid Accent', cost: 260, color: '#c026d3', tab: 'colors' },
+            { id: 'showcase_speedrun', name: 'Speedrun Showcase Slot', cost: 480, tab: 'showcases' },
+            { id: 'showcase_mastered', name: 'Mastered Game Showcase', cost: 500, tab: 'showcases' },
+            { id: 'showcase_chill', name: 'Chill Game Showcase', cost: 450, tab: 'showcases' },
+            { id: 'showcase_rage', name: 'Rage Game Showcase', cost: 550, tab: 'showcases' }
         ];
 
         function renderProfileShop() {
@@ -3083,6 +3191,13 @@
             document.getElementById('slowmode-enabled').checked = !!slowmodeSettings.enabled;
             document.getElementById('slowmode-seconds').value = slowmodeSettings.seconds || 5;
             document.getElementById('slowmode-bypass').value = (slowmodeSettings.bypassUsers || []).join(', ');
+            const select = document.getElementById('featured-game-select');
+            if (select) {
+                select.innerHTML = '<option value=\"\">Auto (Top Rated)</option>' + GAMES.map(g => `<option value=\"${g.title}\">${g.title}</option>`).join('');
+                const featuredSnap = await getDoc(doc(db, 'settings', 'featured'));
+                featuredGameOverride = featuredSnap.exists() ? (featuredSnap.data().gameTitle || '') : '';
+                select.value = featuredGameOverride;
+            }
         }
 
         window.saveSlowmodeSettings = async () => {
@@ -3093,6 +3208,14 @@
             };
             await setDoc(doc(db, 'settings', 'chat'), slowmodeSettings);
             alert('Slowmode updated.');
+        };
+
+        window.saveFeaturedGameOverride = async () => {
+            const select = document.getElementById('featured-game-select');
+            featuredGameOverride = select?.value || '';
+            await setDoc(doc(db, 'settings', 'featured'), { gameTitle: featuredGameOverride, updatedAt: Date.now() });
+            render();
+            alert('Featured game updated.');
         };
 
         window.setGambleTab = (tab) => {
