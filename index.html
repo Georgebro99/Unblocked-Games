@@ -1106,13 +1106,21 @@
         <div class="panel-card max-w-2xl">
             <div class="flex justify-between items-center p-6 border-b border-zinc-800">
                 <h2 class="text-2xl font-black tracking-tighter">Community <span class="text-violet-400">Threads</span></h2>
-                <button onclick="toggleCommunityModal()" class="text-zinc-500 hover:text-white"><i data-lucide="x" class="w-6 h-6"></i></button>
+                <div class="flex items-center gap-2">
+                    <button onclick="toggleCommunityComposer()" class="bg-violet-600/20 text-violet-300 p-2 rounded-lg" title="New Thread"><i data-lucide="plus" class="w-5 h-5"></i></button>
+                    <button onclick="toggleCommunityModal()" class="text-zinc-500 hover:text-white"><i data-lucide="x" class="w-6 h-6"></i></button>
+                </div>
             </div>
             <div class="p-6 space-y-4">
-                <input id="community-title" class="login-input mb-0" placeholder="Thread title">
-                <textarea id="community-body" class="login-input h-24 mb-0" placeholder="Share something..."></textarea>
-                <button onclick="createCommunityPost()" class="login-btn bg-violet-600">Post Thread</button>
-                <div id="community-posts" class="space-y-3 max-h-[45vh] overflow-y-auto"></div>
+                <div id="community-composer" class="hidden space-y-3 bg-zinc-900/70 border border-zinc-800 rounded-xl p-3">
+                    <input id="community-title" class="login-input mb-0" placeholder="Thread title">
+                    <textarea id="community-body" class="login-input h-24 mb-0" placeholder="Share something..."></textarea>
+                    <div class="flex gap-2">
+                        <button onclick="createCommunityPost()" class="login-btn bg-violet-600">Post Thread</button>
+                        <button onclick="toggleCommunityComposer(false)" class="login-btn bg-zinc-700">Cancel</button>
+                    </div>
+                </div>
+                <div id="community-posts" class="space-y-3 max-h-[52vh] overflow-y-auto"></div>
             </div>
         </div>
     </div>
@@ -1255,6 +1263,7 @@
                             setupUserMeta();
                             setupAnnouncementListener();
                             loadCommunityPosts();
+            toggleCommunityComposer(false);
                             loadSlowmodeSettings();
                         } else if (currentUserProfile.banned) {
                             if (document.getElementById('login-screen')) document.getElementById('login-screen').style.display = 'none';
@@ -2201,7 +2210,10 @@
                             <p class="text-sm">${m.text || ''}</p>
                             <div class="flex gap-2 mt-2">
                                 ${!isMine ? `<button onclick="reportChatMessage('${d.id}')" class="text-[10px] text-red-400 hover:underline">Report</button>` : ''}
-                                ${isAdminUser && !isMine ? `<button onclick="warnUser('${m.uid}')" class="text-[10px] text-yellow-400 hover:underline">Warn</button>` : ''}
+                                ${isAdminUser && !isMine ? `<button onclick=\"warnUser('${m.uid}')\" class=\"text-[10px] text-yellow-400 hover:underline\">Warn</button>` : ''}
+                            </div>
+                            <div class="flex gap-1 mt-2">
+                                ${['👍','🔥','😂','❤️'].map(e=>`<button onclick=\"toggleReaction('${d.id}','${e}')\" class=\"text-xs px-1.5 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700\">${e} ${(m.reactions?.[e]||[]).length}</button>`).join('')}
                             </div>
                         </div>
                     `;
@@ -2211,6 +2223,19 @@
                 lucide.createIcons();
             });
         }
+
+
+        window.toggleReaction = async (messageId, emoji) => {
+            const ref = doc(db, 'messages', messageId);
+            const snap = await getDoc(ref);
+            if (!snap.exists()) return;
+            const data = snap.data();
+            const reactions = data.reactions || {};
+            const list = reactions[emoji] || [];
+            const has = list.includes(currentUser.uid);
+            reactions[emoji] = has ? list.filter(uid => uid !== currentUser.uid) : [...list, currentUser.uid];
+            await updateDoc(ref, { reactions });
+        };
 
         window.deleteMessage = async (id) => {
             if (confirm("Delete this message?")) {
@@ -2447,7 +2472,17 @@
             const modal = document.getElementById('community-modal');
             if (!modal) return;
             modal.classList.toggle('hidden');
-            if (!modal.classList.contains('hidden')) loadCommunityPosts();
+            if (!modal.classList.contains('hidden')) {
+                loadCommunityPosts();
+                toggleCommunityComposer(false);
+            }
+        };
+
+        window.toggleCommunityComposer = (force = null) => {
+            const composer = document.getElementById('community-composer');
+            if (!composer) return;
+            if (force === null) composer.classList.toggle('hidden');
+            else composer.classList.toggle('hidden', !force);
         };
 
         window.createCommunityPost = async () => {
