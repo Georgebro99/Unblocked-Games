@@ -422,6 +422,82 @@
             gap: 0.5rem;
             animation: fadeIn 0.3s ease-out;
         }
+        .reaction-bar {
+            display: flex;
+            gap: 2px;
+            margin-top: 4px;
+            flex-wrap: wrap;
+        }
+        .reaction-btn {
+            background: #18181b;
+            border: 1px solid #27272a;
+            border-radius: 9999px;
+            padding: 1px 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            line-height: 1.4;
+        }
+        .reaction-btn:hover {
+            border-color: #3b82f6;
+            background: #1e3a5f;
+        }
+        .reaction-btn.reacted {
+            border-color: #3b82f6;
+            background: #1e3a5f40;
+        }
+        .reaction-btn .r-count {
+            font-size: 10px;
+            color: #94a3b8;
+            font-weight: 600;
+        }
+        .reaction-add {
+            background: transparent;
+            border: 1px dashed #27272a;
+            border-radius: 9999px;
+            padding: 1px 5px;
+            font-size: 11px;
+            cursor: pointer;
+            color: #52525b;
+            transition: all 0.15s;
+        }
+        .reaction-add:hover {
+            border-color: #3b82f6;
+            color: #93c5fd;
+        }
+        .reaction-picker {
+            position: absolute;
+            bottom: 100%;
+            left: 0;
+            background: #09090b;
+            border: 1px solid #27272a;
+            border-radius: 0.75rem;
+            padding: 6px;
+            display: flex;
+            gap: 2px;
+            flex-wrap: wrap;
+            width: 180px;
+            z-index: 100;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+        .reaction-picker button {
+            font-size: 16px;
+            padding: 4px;
+            border-radius: 4px;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            transition: background 0.15s;
+        }
+        .reaction-picker button:hover {
+            background: #27272a;
+        }
+        .profile-color-border {
+            border-left: 3px solid var(--profile-color, #3b82f6);
+        }
     </style>
 </head>
 <body>
@@ -549,26 +625,73 @@
     <!-- Profile Modal -->
     <div id="profile-modal" class="hidden profile-modal" onclick="if(event.target===this)closeProfile()">
         <div class="profile-card">
-            <div class="flex justify-between items-start mb-6">
+            <div class="flex justify-between items-start mb-4">
                 <div>
                     <h2 id="profile-username" class="text-2xl font-black"></h2>
-                    <span id="profile-role" class="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded bg-blue-600/20 text-blue-400 border border-blue-500/30"></span>
+                    <div class="flex items-center gap-2 mt-1">
+                        <span id="profile-role" class="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded bg-blue-600/20 text-blue-400 border border-blue-500/30"></span>
+                        <span id="profile-status-display" class="text-[10px] px-2 py-0.5 rounded bg-green-600/20 text-green-400 border border-green-500/30"></span>
+                    </div>
                 </div>
                 <button onclick="closeProfile()" class="text-zinc-500 hover:text-white transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
-            <div id="profile-bio-section" class="mb-6">
+            <div id="profile-bio-section" class="mb-4">
                 <p id="profile-bio" class="text-zinc-400 text-sm italic"></p>
-                <div id="profile-bio-edit" class="hidden mt-2">
-                    <input type="text" id="profile-bio-input" placeholder="Write a short bio..." maxlength="150" class="w-full bg-black border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
-                    <button onclick="saveBio()" class="mt-2 bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded-lg text-xs font-bold transition-all">Save Bio</button>
+            </div>
+            <div id="profile-fav-game-display" class="mb-4 hidden">
+                <div class="flex items-center gap-2 bg-zinc-900 rounded-lg p-3 border border-zinc-800">
+                    <i data-lucide="gamepad-2" class="w-4 h-4 text-yellow-400"></i>
+                    <div>
+                        <span class="text-[9px] text-zinc-500 uppercase tracking-widest">Favorite Game</span>
+                        <p id="profile-fav-game" class="text-sm font-bold text-white"></p>
+                    </div>
                 </div>
             </div>
-            <div class="grid grid-cols-3 gap-3 mb-6">
+            <div class="grid grid-cols-4 gap-2 mb-4">
                 <div class="stat-box"><div class="stat-val" id="profile-points">0</div><div class="stat-label">Points</div></div>
                 <div class="stat-box"><div class="stat-val" id="profile-messages">0</div><div class="stat-label">Messages</div></div>
                 <div class="stat-box"><div class="stat-val" id="profile-games">0</div><div class="stat-label">Games</div></div>
+                <div class="stat-box"><div class="stat-val" id="profile-playtime">0h</div><div class="stat-label">Playtime</div></div>
             </div>
-            <div class="text-xs text-zinc-500">
+            <div id="profile-edit-section" class="hidden mb-4">
+                <div class="bg-zinc-900 rounded-xl p-4 border border-zinc-800 space-y-3">
+                    <label class="text-[10px] font-bold text-zinc-400 uppercase tracking-widest block">Customize Profile</label>
+                    <div>
+                        <label class="text-[10px] text-zinc-500 mb-1 block">Bio</label>
+                        <input type="text" id="profile-bio-input" placeholder="Write a short bio..." maxlength="150" class="w-full bg-black border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-zinc-500 mb-1 block">Status</label>
+                        <select id="profile-status-input" class="w-full bg-black border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+                            <option value="Online">Online</option>
+                            <option value="Away">Away</option>
+                            <option value="Do Not Disturb">Do Not Disturb</option>
+                            <option value="Gaming">Gaming</option>
+                            <option value="Idle">Idle</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-zinc-500 mb-1 block">Favorite Game</label>
+                        <select id="profile-fav-game-input" class="w-full bg-black border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+                            <option value="">None</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-zinc-500 mb-1 block">Profile Color</label>
+                        <div class="flex gap-2" id="profile-color-picker">
+                            <button onclick="setProfileColor('#3b82f6')" class="w-7 h-7 rounded-full bg-blue-500 border-2 border-transparent hover:border-white transition-all" data-color="#3b82f6"></button>
+                            <button onclick="setProfileColor('#ef4444')" class="w-7 h-7 rounded-full bg-red-500 border-2 border-transparent hover:border-white transition-all" data-color="#ef4444"></button>
+                            <button onclick="setProfileColor('#22c55e')" class="w-7 h-7 rounded-full bg-green-500 border-2 border-transparent hover:border-white transition-all" data-color="#22c55e"></button>
+                            <button onclick="setProfileColor('#a855f7')" class="w-7 h-7 rounded-full bg-purple-500 border-2 border-transparent hover:border-white transition-all" data-color="#a855f7"></button>
+                            <button onclick="setProfileColor('#f97316')" class="w-7 h-7 rounded-full bg-orange-500 border-2 border-transparent hover:border-white transition-all" data-color="#f97316"></button>
+                            <button onclick="setProfileColor('#06b6d4')" class="w-7 h-7 rounded-full bg-cyan-500 border-2 border-transparent hover:border-white transition-all" data-color="#06b6d4"></button>
+                            <button onclick="setProfileColor('#ec4899')" class="w-7 h-7 rounded-full bg-pink-500 border-2 border-transparent hover:border-white transition-all" data-color="#ec4899"></button>
+                        </div>
+                    </div>
+                    <button onclick="saveProfile()" class="w-full bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-lg text-xs font-bold transition-all">Save Profile</button>
+                </div>
+            </div>
+            <div class="flex items-center justify-between text-xs text-zinc-500">
                 <p>Joined: <span id="profile-joined" class="text-zinc-300"></span></p>
             </div>
         </div>
@@ -619,15 +742,15 @@
         </div>
     </div>
 
-    <!-- Wishlist Overlay -->
+    <!-- Favorites Overlay -->
     <div id="wishlist-panel" class="hidden overlay-panel" onclick="if(event.target===this)toggleWishlist()">
         <div class="panel-card">
             <div class="flex justify-between items-center p-6 border-b border-zinc-800">
-                <h2 class="text-2xl font-black tracking-tighter"><i data-lucide="heart" class="inline w-6 h-6 text-red-400"></i> My <span class="text-blue-500">Wishlist</span></h2>
+                <h2 class="text-2xl font-black tracking-tighter"><i data-lucide="heart" class="inline w-6 h-6 text-red-400"></i> My <span class="text-blue-500">Favorites</span></h2>
                 <button onclick="toggleWishlist()" class="bg-zinc-900 p-2 rounded-full text-zinc-400 hover:text-white transition-all"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
             <div class="p-6">
-                <div id="wishlist-games" class="grid grid-cols-2 md:grid-cols-3 gap-4"><p class="text-zinc-500 italic text-sm col-span-full">Your wishlist is empty. Click the heart on any game to add it!</p></div>
+                <div id="wishlist-games" class="grid grid-cols-2 md:grid-cols-3 gap-4"><p class="text-zinc-500 italic text-sm col-span-full">No favorites yet. Click the heart on any game to add it!</p></div>
             </div>
         </div>
     </div>
@@ -648,7 +771,7 @@
                         <span id="my-points">0</span> pts
                     </div>
                     <input type="text" id="search" placeholder="Search games..." oninput="render()" class="bg-zinc-900 border border-zinc-800 px-4 py-2 rounded-lg focus:outline-none focus:border-blue-500 text-white w-40">
-                    <button onclick="toggleWishlist()" class="text-zinc-500 hover:text-red-400 transition-colors p-2" title="My Wishlist">
+                    <button onclick="toggleWishlist()" class="text-zinc-500 hover:text-red-400 transition-colors p-2" title="My Favorites">
                         <i data-lucide="heart" class="w-5 h-5"></i>
                     </button>
                     <button onclick="toggleSuggestions()" class="text-zinc-500 hover:text-yellow-400 transition-colors p-2" title="Game Suggestions">
@@ -1360,6 +1483,23 @@
             });
         }
 
+        const REACTION_EMOJIS = ['👍', '👎', '😂', '❤️', '🔥', '😮', '💀', '🎮', '👀', '💯'];
+
+        function renderReactions(msgId, reactions) {
+            if (!reactions || Object.keys(reactions).length === 0) return '';
+            const counts = {};
+            Object.entries(reactions).forEach(([uid, emoji]) => {
+                if (!counts[emoji]) counts[emoji] = { count: 0, users: [] };
+                counts[emoji].count++;
+                counts[emoji].users.push(uid);
+            });
+            const buttons = Object.entries(counts).map(([emoji, data]) => {
+                const reacted = data.users.includes(currentUser?.uid);
+                return `<button class="reaction-btn ${reacted ? 'reacted' : ''}" onclick="toggleReaction('${msgId}', '${emoji}')">${emoji}<span class="r-count">${data.count}</span></button>`;
+            }).join('');
+            return buttons;
+        }
+
         function addMessageToUI(msg) {
             const container = document.getElementById('chat-messages');
             const wrapper = document.createElement('div');
@@ -1371,14 +1511,19 @@
             const time = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '...';
             const now = Date.now();
             const canDelete = isMine && (now - msg.timestamp <= 10000);
+            const reactionHtml = renderReactions(msg.id, msg.reactions);
 
             wrapper.innerHTML = `
                 <div class="message-bubble ${isMine ? 'mine' : 'others'}">
                     <div class="flex justify-between items-baseline mb-1 gap-4">
-                        <span class="text-[10px] font-bold ${isMine ? 'text-blue-100' : 'text-blue-400'} uppercase tracking-wider">${isMine ? 'You' : msg.user}</span>
+                        <span onclick="showProfile('${msg.uid}')" class="text-[10px] font-bold ${isMine ? 'text-blue-100' : 'text-blue-400'} uppercase tracking-wider cursor-pointer hover:underline">${isMine ? 'You' : msg.user}</span>
                         <span class="text-[9px] ${isMine ? 'text-blue-200' : 'text-zinc-500'}">${time}</span>
                     </div>
                     <p class="text-sm ${isMine ? 'text-white' : 'text-zinc-200'}">${msg.text}</p>
+                    <div class="reaction-bar" id="reactions-${msg.id}">
+                        ${reactionHtml}
+                        <button class="reaction-add" onclick="showReactionPicker('${msg.id}', event)" title="Add reaction">+</button>
+                    </div>
                 </div>
                 ${isMine ? `<button id="del-${msg.id}" onclick="deleteMessage('${msg.id}')" class="delete-btn ${!canDelete ? 'disabled' : ''}">Delete</button>` : ''}
             `;
@@ -1401,6 +1546,54 @@
             } catch (error) {
                 handleFirestoreError(error, OperationType.DELETE, path);
             }
+        };
+
+        // Reaction functions
+        window.showReactionPicker = (msgId, event) => {
+            event.stopPropagation();
+            const existing = document.getElementById('reaction-picker-popup');
+            if (existing) existing.remove();
+            
+            const picker = document.createElement('div');
+            picker.id = 'reaction-picker-popup';
+            picker.className = 'reaction-picker';
+            picker.innerHTML = REACTION_EMOJIS.map(e => 
+                `<button onclick="event.stopPropagation();toggleReaction('${msgId}', '${e}')">${e}</button>`
+            ).join('');
+            
+            const bar = document.getElementById(`reactions-${msgId}`);
+            if (bar) {
+                bar.style.position = 'relative';
+                bar.appendChild(picker);
+            }
+            
+            const closePicker = (e) => {
+                if (!picker.contains(e.target)) {
+                    picker.remove();
+                    document.removeEventListener('click', closePicker);
+                }
+            };
+            setTimeout(() => document.addEventListener('click', closePicker), 10);
+        };
+
+        window.toggleReaction = async (msgId, emoji) => {
+            if (!currentUser) return;
+            const existing2 = document.getElementById('reaction-picker-popup');
+            if (existing2) existing2.remove();
+            
+            try {
+                const msgDoc = await getDoc(doc(db, "messages", msgId));
+                if (!msgDoc.exists()) return;
+                const reactions = msgDoc.data().reactions || {};
+                
+                if (reactions[currentUser.uid] === emoji) {
+                    delete reactions[currentUser.uid];
+                } else {
+                    reactions[currentUser.uid] = emoji;
+                }
+                
+                await updateDoc(doc(db, "messages", msgId), { reactions });
+            } catch (error) { console.error('Reaction error:', error); }
         };
 
         // Friends & DM Logic
@@ -1917,7 +2110,7 @@
                         <div class="absolute top-2 left-2">
                             <span class="bg-black/60 backdrop-blur-md text-[10px] font-bold px-2 py-1 rounded text-blue-400 border border-blue-500/20 uppercase tracking-tighter">${g.category}</span>
                         </div>
-                        <button onclick="event.stopPropagation();toggleWishlistItem('${g.title}')" class="wishlist-heart ${isWishlisted ? 'active' : ''}" title="${isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}">
+                        <button onclick="event.stopPropagation();toggleWishlistItem('${g.title}')" class="wishlist-heart ${isWishlisted ? 'active' : ''}" title="${isWishlisted ? 'Remove from favorites' : 'Add to favorites'}">
                             <i data-lucide="heart" class="w-4 h-4 ${isWishlisted ? 'fill-current' : ''}"></i>
                         </button>
                     </div>
@@ -1980,14 +2173,19 @@
             document.getElementById('game-container').style.display = 'none';
             document.getElementById('main-ui').style.display = 'block';
             
-            // Award points for playing games (min 10 seconds)
-            if (gameStartTime && currentUser && currentUserProfile && (Date.now() - gameStartTime >= 10000)) {
+            // Award points for playing games (min 10 seconds) + track playtime
+            if (gameStartTime && currentUser && currentUserProfile) {
+                const sessionMs = Date.now() - gameStartTime;
+                const sessionMins = sessionMs / 60000;
                 try {
-                    const newPoints = (currentUserProfile.points || 0) + 5;
-                    const newGamesPlayed = (currentUserProfile.gamesPlayed || 0) + 1;
-                    await updateDoc(doc(db, "users", currentUser.uid), { points: newPoints, gamesPlayed: newGamesPlayed });
-                    currentUserProfile.points = newPoints;
-                    currentUserProfile.gamesPlayed = newGamesPlayed;
+                    const updates = { totalPlaytime: (currentUserProfile.totalPlaytime || 0) + sessionMins };
+                    if (sessionMs >= 10000) {
+                        updates.points = (currentUserProfile.points || 0) + 5;
+                        updates.gamesPlayed = (currentUserProfile.gamesPlayed || 0) + 1;
+                    }
+                    await updateDoc(doc(db, "users", currentUser.uid), updates);
+                    currentUserProfile.totalPlaytime = updates.totalPlaytime;
+                    if (updates.points) { currentUserProfile.points = updates.points; currentUserProfile.gamesPlayed = updates.gamesPlayed; }
                     updatePointsDisplay();
                 } catch (error) { console.error('Points award error:', error); }
             }
@@ -2005,35 +2203,95 @@
         };
 
         // ==================== PROFILE SYSTEM ====================
+        let selectedProfileColor = '#3b82f6';
+
+        function formatPlaytime(minutes) {
+            if (!minutes || minutes < 1) return '0m';
+            if (minutes < 60) return `${Math.round(minutes)}m`;
+            const hours = Math.floor(minutes / 60);
+            const mins = Math.round(minutes % 60);
+            return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+        }
+
+        function getStatusColor(status) {
+            const colors = { 'Online': 'green', 'Away': 'yellow', 'Do Not Disturb': 'red', 'Gaming': 'purple', 'Idle': 'zinc' };
+            const c = colors[status] || 'green';
+            return { bg: `bg-${c}-600/20`, text: `text-${c}-400`, border: `border-${c}-500/30` };
+        }
+
         window.showProfile = async (uid) => {
             try {
-                const userDoc = await getDoc(doc(db, "users", uid));
-                if (!userDoc.exists()) return;
-                const data = userDoc.data();
+                const userDoc2 = await getDoc(doc(db, "users", uid));
+                if (!userDoc2.exists()) return;
+                const data = userDoc2.data();
                 const isOwn = uid === currentUser?.uid;
                 
+                const profileCard = document.querySelector('.profile-card');
+                const color = data.profileColor || '#3b82f6';
+                profileCard.style.setProperty('--profile-color', color);
+                profileCard.classList.add('profile-color-border');
+                
                 document.getElementById('profile-username').textContent = data.username;
+                document.getElementById('profile-username').style.color = color;
                 document.getElementById('profile-role').textContent = data.role || 'user';
                 document.getElementById('profile-points').textContent = data.points || 0;
                 document.getElementById('profile-messages').textContent = data.messagesSent || 0;
                 document.getElementById('profile-games').textContent = data.gamesPlayed || 0;
+                document.getElementById('profile-playtime').textContent = formatPlaytime(data.totalPlaytime || 0);
                 document.getElementById('profile-joined').textContent = data.createdAt ? new Date(data.createdAt).toLocaleDateString() : 'Unknown';
                 
-                const bioEl = document.getElementById('profile-bio');
-                const bioEditEl = document.getElementById('profile-bio-edit');
-                bioEl.textContent = data.bio || 'No bio set.';
+                // Status
+                const status = data.status || 'Online';
+                const statusEl = document.getElementById('profile-status-display');
+                const sc = getStatusColor(status);
+                statusEl.textContent = status;
+                statusEl.className = `text-[10px] px-2 py-0.5 rounded ${sc.bg} ${sc.text} border ${sc.border}`;
                 
-                if (isOwn) {
-                    bioEditEl.classList.remove('hidden');
-                    document.getElementById('profile-bio-input').value = data.bio || '';
+                // Bio
+                document.getElementById('profile-bio').textContent = data.bio || 'No bio set.';
+                
+                // Favorite game
+                const favGameDisplay = document.getElementById('profile-fav-game-display');
+                if (data.favoriteGame) {
+                    favGameDisplay.classList.remove('hidden');
+                    document.getElementById('profile-fav-game').textContent = data.favoriteGame;
                 } else {
-                    bioEditEl.classList.add('hidden');
+                    favGameDisplay.classList.add('hidden');
+                }
+                
+                // Edit section (only for own profile)
+                const editSection = document.getElementById('profile-edit-section');
+                if (isOwn) {
+                    editSection.classList.remove('hidden');
+                    document.getElementById('profile-bio-input').value = data.bio || '';
+                    document.getElementById('profile-status-input').value = data.status || 'Online';
+                    selectedProfileColor = data.profileColor || '#3b82f6';
+                    
+                    // Populate favorite game dropdown
+                    const favSelect = document.getElementById('profile-fav-game-input');
+                    favSelect.innerHTML = '<option value="">None</option>' + GAMES.map(g => 
+                        `<option value="${g.title}" ${data.favoriteGame === g.title ? 'selected' : ''}>${g.title}</option>`
+                    ).join('');
+                    
+                    // Highlight selected color
+                    document.querySelectorAll('#profile-color-picker button').forEach(btn => {
+                        btn.style.borderColor = btn.dataset.color === selectedProfileColor ? 'white' : 'transparent';
+                    });
+                } else {
+                    editSection.classList.add('hidden');
                 }
                 
                 document.getElementById('profile-modal').classList.remove('hidden');
                 document.getElementById('profile-modal').dataset.uid = uid;
                 lucide.createIcons();
             } catch (error) { console.error('Profile error:', error); }
+        };
+
+        window.setProfileColor = (color) => {
+            selectedProfileColor = color;
+            document.querySelectorAll('#profile-color-picker button').forEach(btn => {
+                btn.style.borderColor = btn.dataset.color === color ? 'white' : 'transparent';
+            });
         };
 
         window.showOwnProfile = () => {
@@ -2044,14 +2302,22 @@
             document.getElementById('profile-modal').classList.add('hidden');
         };
 
-        window.saveBio = async () => {
-            const bio = document.getElementById('profile-bio-input').value.trim();
+        window.saveProfile = async () => {
             if (!currentUser) return;
+            const bio = document.getElementById('profile-bio-input').value.trim();
+            const status = document.getElementById('profile-status-input').value;
+            const favoriteGame = document.getElementById('profile-fav-game-input').value;
             try {
-                await updateDoc(doc(db, "users", currentUser.uid), { bio });
+                await updateDoc(doc(db, "users", currentUser.uid), { 
+                    bio, status, favoriteGame, profileColor: selectedProfileColor 
+                });
                 currentUserProfile.bio = bio;
+                currentUserProfile.status = status;
+                currentUserProfile.favoriteGame = favoriteGame;
+                currentUserProfile.profileColor = selectedProfileColor;
                 document.getElementById('profile-bio').textContent = bio || 'No bio set.';
-            } catch (error) { console.error('Save bio error:', error); }
+                showProfile(currentUser.uid);
+            } catch (error) { console.error('Save profile error:', error); }
         };
 
         // ==================== LEADERBOARD ====================
@@ -2118,7 +2384,7 @@
             const container = document.getElementById('wishlist-games');
             const wishlistGames = GAMES.filter(g => wishlist.includes(g.title));
             if (wishlistGames.length === 0) {
-                container.innerHTML = '<p class="text-zinc-500 italic text-sm col-span-full">Your wishlist is empty. Click the heart on any game to add it!</p>';
+                container.innerHTML = '<p class="text-zinc-500 italic text-sm col-span-full">No favorites yet. Click the heart on any game to add it!</p>';
                 return;
             }
             container.innerHTML = wishlistGames.map(g => `

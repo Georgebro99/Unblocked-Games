@@ -20,6 +20,10 @@
         "uid": {
           "type": "string",
           "description": "The user's unique ID"
+        },
+        "reactions": {
+          "type": "object",
+          "description": "Map of user UIDs to their emoji reaction"
         }
       },
       "required": ["user", "text", "timestamp", "uid"]
@@ -80,6 +84,22 @@
         "mutedUntil": {
           "type": "number",
           "description": "Timestamp when mute expires"
+        },
+        "favoriteGame": {
+          "type": "string",
+          "description": "User's favorite game to display on profile"
+        },
+        "totalPlaytime": {
+          "type": "number",
+          "description": "Total playtime in minutes"
+        },
+        "status": {
+          "type": "string",
+          "description": "User status (Online, Away, Do Not Disturb, Gaming, Idle)"
+        },
+        "profileColor": {
+          "type": "string",
+          "description": "Profile accent color hex code"
         }
       },
       "required": ["username", "email", "approved", "role", "createdAt"]
