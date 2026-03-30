@@ -1533,6 +1533,7 @@
         let settingsUnsubscribers = [];
         const LOCAL_FEATURED_KEY = 'nexus_featured_override';
         const LOCAL_THUMBNAIL_KEY = 'nexus_game_thumbnails';
+        const LOCAL_SLOWMODE_KEY = 'nexus_slowmode_settings';
 
         const GAMES = [
             { title: 'Nexus Slots', category: 'Casino', url: 'javascript:openSlots()', img: 'https://www.google.com/s2/favicons?domain=javascript:openSlots()&sz=256' },
@@ -1725,6 +1726,10 @@
             } catch (_) {
                 customGameThumbnails = {};
             }
+            try {
+                const localSlowmode = JSON.parse(localStorage.getItem(LOCAL_SLOWMODE_KEY) || '{}');
+                if (localSlowmode && typeof localSlowmode === 'object') slowmodeSettings = { ...slowmodeSettings, ...localSlowmode };
+            } catch (_) {}
             const startAdminFallbackListener = () => {
                 if (settingsUnsubscribers.some(u => u && u.__settingsFallback)) return;
                 const unsub = onSnapshot(query(collection(db, 'users'), where('role', '==', 'admin'), limit(20)), (snap) => {
@@ -1737,8 +1742,20 @@
                     if (!latest) return;
                     if (latest.sharedFeaturedGame) featuredGameOverride = latest.sharedFeaturedGame;
                     if (latest.sharedGameThumbnails && typeof latest.sharedGameThumbnails === 'object') customGameThumbnails = latest.sharedGameThumbnails;
+                    if (latest.sharedSlowmodeSettings && typeof latest.sharedSlowmodeSettings === 'object') {
+                        slowmodeSettings = { ...slowmodeSettings, ...latest.sharedSlowmodeSettings };
+                    }
+                    localStorage.setItem(LOCAL_FEATURED_KEY, featuredGameOverride || '');
+                    localStorage.setItem(LOCAL_THUMBNAIL_KEY, JSON.stringify(customGameThumbnails || {}));
+                    localStorage.setItem(LOCAL_SLOWMODE_KEY, JSON.stringify(slowmodeSettings || {}));
                     const select = document.getElementById('featured-game-select');
                     if (select) select.value = featuredGameOverride || '';
+                    const slowEnabled = document.getElementById('slowmode-enabled');
+                    const slowSeconds = document.getElementById('slowmode-seconds');
+                    const slowBypass = document.getElementById('slowmode-bypass');
+                    if (slowEnabled) slowEnabled.checked = !!slowmodeSettings.enabled;
+                    if (slowSeconds) slowSeconds.value = slowmodeSettings.seconds || 5;
+                    if (slowBypass) slowBypass.value = (slowmodeSettings.bypassUsers || []).join(', ');
                     render();
                 });
                 unsub.__settingsFallback = true;
@@ -1767,6 +1784,22 @@
                 }
                 startAdminFallbackListener();
                 render();
+            }));
+            settingsUnsubscribers.push(onSnapshot(doc(db, 'settings', 'chat'), (snap) => {
+                if (snap.exists()) slowmodeSettings = { ...slowmodeSettings, ...snap.data() };
+                localStorage.setItem(LOCAL_SLOWMODE_KEY, JSON.stringify(slowmodeSettings || {}));
+                const slowEnabled = document.getElementById('slowmode-enabled');
+                const slowSeconds = document.getElementById('slowmode-seconds');
+                const slowBypass = document.getElementById('slowmode-bypass');
+                if (slowEnabled) slowEnabled.checked = !!slowmodeSettings.enabled;
+                if (slowSeconds) slowSeconds.value = slowmodeSettings.seconds || 5;
+                if (slowBypass) slowBypass.value = (slowmodeSettings.bypassUsers || []).join(', ');
+            }, () => {
+                try {
+                    const localSlowmode = JSON.parse(localStorage.getItem(LOCAL_SLOWMODE_KEY) || '{}');
+                    if (localSlowmode && typeof localSlowmode === 'object') slowmodeSettings = { ...slowmodeSettings, ...localSlowmode };
+                } catch (_) {}
+                startAdminFallbackListener();
             }));
         }
 
@@ -3793,6 +3826,14 @@
             loadBanAppeals();
         };
 
+        async function saveSharedAdminSettings(payload) {
+            if (!currentUser?.uid) throw new Error('Missing current user');
+            await setDoc(doc(db, 'users', currentUser.uid), {
+                ...payload,
+                sharedSettingsUpdatedAt: Date.now()
+            }, { merge: true });
+        }
+
         async function loadSlowmodeSettings() {
             featuredGameOverride = localStorage.getItem(LOCAL_FEATURED_KEY) || featuredGameOverride || '';
             try {
@@ -3800,6 +3841,10 @@
             } catch (_) {
                 customGameThumbnails = customGameThumbnails || {};
             }
+            try {
+                const localSlowmode = JSON.parse(localStorage.getItem(LOCAL_SLOWMODE_KEY) || '{}');
+                if (localSlowmode && typeof localSlowmode === 'object') slowmodeSettings = { ...slowmodeSettings, ...localSlowmode };
+            } catch (_) {}
             const options = GAMES.map(g => `<option value="${g.title}">${g.title}</option>`).join('');
             const select = document.getElementById('featured-game-select');
             if (select) {
@@ -3812,7 +3857,20 @@
             try {
                 const snap = await getDoc(doc(db, 'settings', 'chat'));
                 if (snap.exists()) slowmodeSettings = { ...slowmodeSettings, ...snap.data() };
-            } catch (_) {}
+            } catch (_) {
+                try {
+                    const adminSnaps = await getDocs(query(collection(db, 'users'), where('role', '==', 'admin'), limit(20)));
+                    let latest = null;
+                    adminSnaps.forEach(d => {
+                        const data = d.data();
+                        if (!latest || (data.sharedSettingsUpdatedAt || 0) > (latest.sharedSettingsUpdatedAt || 0)) latest = data;
+                    });
+                    if (latest?.sharedSlowmodeSettings && typeof latest.sharedSlowmodeSettings === 'object') {
+                        slowmodeSettings = { ...slowmodeSettings, ...latest.sharedSlowmodeSettings };
+                    }
+                } catch (_) {}
+            }
+            localStorage.setItem(LOCAL_SLOWMODE_KEY, JSON.stringify(slowmodeSettings || {}));
             const slowEnabled = document.getElementById('slowmode-enabled');
             const slowSeconds = document.getElementById('slowmode-seconds');
             const slowBypass = document.getElementById('slowmode-bypass');
@@ -3829,8 +3887,20 @@
                 seconds: Math.max(1, parseInt(document.getElementById('slowmode-seconds').value || '5')),
                 bypassUsers: document.getElementById('slowmode-bypass').value.split(',').map(v => v.trim()).filter(Boolean)
             };
-            await setDoc(doc(db, 'settings', 'chat'), slowmodeSettings);
-            alert('Slowmode updated.');
+            try {
+                await setDoc(doc(db, 'settings', 'chat'), slowmodeSettings);
+                localStorage.setItem(LOCAL_SLOWMODE_KEY, JSON.stringify(slowmodeSettings || {}));
+                alert('Slowmode updated in cloud.');
+            } catch (e) {
+                try {
+                    await saveSharedAdminSettings({ sharedSlowmodeSettings: slowmodeSettings });
+                    localStorage.setItem(LOCAL_SLOWMODE_KEY, JSON.stringify(slowmodeSettings || {}));
+                    alert('Slowmode updated in cloud via admin shared fallback.');
+                } catch (fallbackError) {
+                    localStorage.setItem(LOCAL_SLOWMODE_KEY, JSON.stringify(slowmodeSettings || {}));
+                    alert(`Cloud save failed (${e?.message || e}; fallback failed: ${fallbackError?.message || fallbackError}). Saved slowmode locally on this device.`);
+                }
+            }
         };
 
         window.saveFeaturedGameOverride = async () => {
@@ -3838,12 +3908,20 @@
             featuredGameOverride = select?.value || '';
             try {
                 await setDoc(doc(db, 'settings', 'featured'), { gameTitle: featuredGameOverride, updatedAt: Date.now() });
+                localStorage.setItem(LOCAL_FEATURED_KEY, featuredGameOverride || '');
                 render();
                 alert('Featured game updated.');
             } catch (e) {
-                localStorage.setItem(LOCAL_FEATURED_KEY, featuredGameOverride || '');
-                render();
-                alert(`Cloud save failed (${e?.message || e}). Saved featured override locally on this device.`);
+                try {
+                    await saveSharedAdminSettings({ sharedFeaturedGame: featuredGameOverride });
+                    localStorage.setItem(LOCAL_FEATURED_KEY, featuredGameOverride || '');
+                    render();
+                    alert('Featured game updated in cloud via admin shared fallback.');
+                } catch (fallbackError) {
+                    localStorage.setItem(LOCAL_FEATURED_KEY, featuredGameOverride || '');
+                    render();
+                    alert(`Cloud save failed (${e?.message || e}; fallback failed: ${fallbackError?.message || fallbackError}). Saved featured override locally on this device.`);
+                }
             }
         };
 
@@ -3862,12 +3940,20 @@
             customGameThumbnails[gameTitle] = dataUrl;
             try {
                 await setDoc(doc(db, 'settings', 'game_thumbnails'), { map: customGameThumbnails, updatedAt: Date.now() });
+                localStorage.setItem(LOCAL_THUMBNAIL_KEY, JSON.stringify(customGameThumbnails || {}));
                 render();
                 alert(`Thumbnail updated for ${gameTitle}.`);
             } catch (e) {
-                localStorage.setItem(LOCAL_THUMBNAIL_KEY, JSON.stringify(customGameThumbnails || {}));
-                render();
-                alert(`Cloud upload failed (${e?.message || e}). Saved thumbnail locally on this device.`);
+                try {
+                    await saveSharedAdminSettings({ sharedGameThumbnails: customGameThumbnails });
+                    localStorage.setItem(LOCAL_THUMBNAIL_KEY, JSON.stringify(customGameThumbnails || {}));
+                    render();
+                    alert(`Thumbnail updated for ${gameTitle} in cloud via admin shared fallback.`);
+                } catch (fallbackError) {
+                    localStorage.setItem(LOCAL_THUMBNAIL_KEY, JSON.stringify(customGameThumbnails || {}));
+                    render();
+                    alert(`Cloud upload failed (${e?.message || e}; fallback failed: ${fallbackError?.message || fallbackError}). Saved thumbnail locally on this device.`);
+                }
             }
         };
 
@@ -3877,12 +3963,20 @@
             delete customGameThumbnails[gameTitle];
             try {
                 await setDoc(doc(db, 'settings', 'game_thumbnails'), { map: customGameThumbnails, updatedAt: Date.now() });
+                localStorage.setItem(LOCAL_THUMBNAIL_KEY, JSON.stringify(customGameThumbnails || {}));
                 render();
                 alert(`Custom thumbnail cleared for ${gameTitle}.`);
             } catch (e) {
-                localStorage.setItem(LOCAL_THUMBNAIL_KEY, JSON.stringify(customGameThumbnails || {}));
-                render();
-                alert(`Cloud clear failed (${e?.message || e}). Cleared thumbnail locally on this device.`);
+                try {
+                    await saveSharedAdminSettings({ sharedGameThumbnails: customGameThumbnails });
+                    localStorage.setItem(LOCAL_THUMBNAIL_KEY, JSON.stringify(customGameThumbnails || {}));
+                    render();
+                    alert(`Custom thumbnail cleared for ${gameTitle} in cloud via admin shared fallback.`);
+                } catch (fallbackError) {
+                    localStorage.setItem(LOCAL_THUMBNAIL_KEY, JSON.stringify(customGameThumbnails || {}));
+                    render();
+                    alert(`Cloud clear failed (${e?.message || e}; fallback failed: ${fallbackError?.message || fallbackError}). Cleared thumbnail locally on this device.`);
+                }
             }
         };
 
