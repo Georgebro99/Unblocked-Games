@@ -1513,6 +1513,7 @@
         let activeThreadId = null;
         let lastMessagePointAt = 0;
         let presenceHeartbeat = null;
+        let cachedChatMessages = [];
 
         const GAMES = [
             { title: 'Nexus Slots', category: 'Casino', url: 'javascript:openSlots()', img: 'https://www.google.com/s2/favicons?domain=javascript:openSlots()&sz=256' },
@@ -2448,42 +2449,46 @@
             }
         }
 
+        window.renderMessages = () => {
+            const container = document.getElementById('chat-messages');
+            if (!container || !currentUserProfile) return;
+            container.innerHTML = '';
+            cachedChatMessages.forEach(({ id, data: m }) => {
+                const blocked = currentUserProfile.blockedUsers || [];
+                if (blocked.includes(m.uid)) return;
+                const isMine = m.uid === currentUser.uid;
+                const isAdminUser = currentUserProfile.role === 'admin';
+                const div = document.createElement('div');
+                div.className = `message-container ${isMine ? 'items-end' : 'items-start'}`;
+                div.innerHTML = `
+                    <div class="message-bubble ${isMine ? 'mine' : 'others'}" style="border-color:${(userMetaById[m.uid]?.profileColor)||'#3b82f6'}55;background:${(userMetaById[m.uid]?.profileColor)||'#3b82f6'}18">
+                        <div class="flex justify-between items-start gap-4">
+                            <div class="flex items-center gap-1 mb-1"><button onclick="showUserProfile('${m.uid}')" class="text-[10px] font-bold hover:text-blue-400">${m.user}</button>${(() => { const meta=userMetaById[m.uid]||{}; const tags=[]; if(m.uid===topPointsUid) tags.push('<span class=\"text-[9px] px-1 rounded bg-yellow-600/30 text-yellow-300\">Top Points</span>'); if((meta.role||'')==='admin') tags.push('<span class=\"text-[9px] px-1 rounded bg-blue-600/30 text-blue-300\">Admin</span>'); if((meta.ownerTag)|| (meta.role||'')==='owner'||['kyler','kaiden'].includes((meta.username||'').toLowerCase())) tags.push('<span class=\"text-[9px] px-1 rounded bg-purple-600/30 text-purple-300\">Owner</span>'); return tags.join(''); })()}</div>
+                            ${isAdminUser ? `<button onclick="deleteMessage('${id}')" class="text-red-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"><i data-lucide="trash-2" class="w-3 h-3"></i></button>` : ''}
+                        </div>
+                        ${m.gif ? `<img src="${m.gif}" class="rounded-lg mb-2 w-full max-h-56 object-contain bg-black/20">` : ''}
+                        ${m.reply ? `<p class="text-[10px] text-zinc-400 border-l-2 border-zinc-600 pl-2 mb-1">↪ ${m.reply.user}: ${m.reply.text}</p>` : ''}
+                        <p class="text-sm">${m.text || ''}</p>
+                        <div class="flex gap-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            ${!isMine ? `<button onclick="reportChatMessage('${id}')" class="text-[10px] text-red-400 hover:underline">Report</button>` : ''}
+                            ${isAdminUser && !isMine ? `<button onclick=\"warnUser('${m.uid}')\" class=\"text-[10px] text-yellow-400 hover:underline\">Warn</button>` : ''}
+                            <button onclick="setReply('${id}', '${m.user}', \`${(m.text || '').replace(/`/g, '')}\`)" class="text-[10px] text-blue-400 hover:underline">Reply</button>
+                        </div>
+                        <div class="flex gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            ${['👍','🔥','😂','❤️'].map(e=>`<button onclick=\"toggleReaction('${id}','${e}')\" class=\"text-xs px-1.5 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700\">${e} ${(m.reactions?.[e]||[]).length}</button>`).join('')}
+                        </div>
+                    </div>
+                `;
+                div.classList.add('group');
+                container.appendChild(div);
+            });
+            lucide.createIcons();
+        };
+
         function setupChat() {
             onSnapshot(query(collection(db, "messages"), orderBy("timestamp", "desc"), limit(50)), (snap) => {
-                const container = document.getElementById('chat-messages');
-                if (!container) return;
-                container.innerHTML = '';
-                snap.forEach(d => {
-                    const m = d.data();
-                    const blocked = currentUserProfile.blockedUsers || [];
-                    if (blocked.includes(m.uid)) return;
-                    const isMine = m.uid === currentUser.uid;
-                    const isAdminUser = currentUserProfile.role === 'admin';
-                    const div = document.createElement('div');
-                    div.className = `message-container ${isMine ? 'items-end' : 'items-start'}`;
-                    div.innerHTML = `
-                        <div class="message-bubble ${isMine ? 'mine' : 'others'}" style="border-color:${(userMetaById[m.uid]?.profileColor)||'#3b82f6'}55;background:${(userMetaById[m.uid]?.profileColor)||'#3b82f6'}18">
-                            <div class="flex justify-between items-start gap-4">
-                                <div class="flex items-center gap-1 mb-1"><button onclick="showUserProfile('${m.uid}')" class="text-[10px] font-bold hover:text-blue-400">${m.user}</button>${(() => { const meta=userMetaById[m.uid]||{}; const tags=[]; if(m.uid===topPointsUid) tags.push('<span class=\"text-[9px] px-1 rounded bg-yellow-600/30 text-yellow-300\">Top Points</span>'); if((meta.role||'')==='admin') tags.push('<span class=\"text-[9px] px-1 rounded bg-blue-600/30 text-blue-300\">Admin</span>'); if((meta.ownerTag)|| (meta.role||'')==='owner'||['kyler','kaiden'].includes((meta.username||'').toLowerCase())) tags.push('<span class=\"text-[9px] px-1 rounded bg-purple-600/30 text-purple-300\">Owner</span>'); return tags.join(''); })()}</div>
-                                ${isAdminUser ? `<button onclick="deleteMessage('${d.id}')" class="text-red-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"><i data-lucide="trash-2" class="w-3 h-3"></i></button>` : ''}
-                            </div>
-                            ${m.gif ? `<img src="${m.gif}" class="rounded-lg mb-2 w-full max-h-56 object-contain bg-black/20">` : ''}
-                            ${m.reply ? `<p class="text-[10px] text-zinc-400 border-l-2 border-zinc-600 pl-2 mb-1">↪ ${m.reply.user}: ${m.reply.text}</p>` : ''}
-                            <p class="text-sm">${m.text || ''}</p>
-                            <div class="flex gap-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                ${!isMine ? `<button onclick="reportChatMessage('${d.id}')" class="text-[10px] text-red-400 hover:underline">Report</button>` : ''}
-                                ${isAdminUser && !isMine ? `<button onclick=\"warnUser('${m.uid}')\" class=\"text-[10px] text-yellow-400 hover:underline\">Warn</button>` : ''}
-                                <button onclick="setReply('${d.id}', '${m.user}', \`${(m.text || '').replace(/`/g, '')}\`)" class="text-[10px] text-blue-400 hover:underline">Reply</button>
-                            </div>
-                            <div class="flex gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                ${['👍','🔥','😂','❤️'].map(e=>`<button onclick=\"toggleReaction('${d.id}','${e}')\" class=\"text-xs px-1.5 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700\">${e} ${(m.reactions?.[e]||[]).length}</button>`).join('')}
-                            </div>
-                        </div>
-                    `;
-                    div.classList.add('group');
-                    container.appendChild(div);
-                });
-                lucide.createIcons();
+                cachedChatMessages = snap.docs.map(d => ({ id: d.id, data: d.data() }));
+                window.renderMessages();
             });
         }
 
