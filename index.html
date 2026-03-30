@@ -1394,6 +1394,7 @@
                             }
                             updatePointsDisplay();
                             setupRatings();
+                            startSettingsListeners();
                             render();
                             setupChat();
                             startPresenceHeartbeat();
@@ -1417,6 +1418,7 @@
                 } else {
                     currentUser = null;
                     currentUserProfile = null;
+                    stopSettingsListeners();
                     if (presenceHeartbeat) { clearInterval(presenceHeartbeat); presenceHeartbeat = null; }
                     if (document.getElementById('login-screen')) document.getElementById('login-screen').style.display = 'flex';
                     if (document.getElementById('main-ui')) document.getElementById('main-ui').style.display = 'none';
@@ -1528,6 +1530,7 @@
         let cachedChatMessages = [];
         let customGameThumbnails = {};
         let profileDocUnsubscribe = null;
+        let settingsUnsubscribers = [];
 
         const GAMES = [
             { title: 'Nexus Slots', category: 'Casino', url: 'javascript:openSlots()', img: 'https://www.google.com/s2/favicons?domain=javascript:openSlots()&sz=256' },
@@ -1709,6 +1712,26 @@
             if (presenceHeartbeat) clearInterval(presenceHeartbeat);
             updatePresence();
             presenceHeartbeat = setInterval(updatePresence, 30000);
+        }
+
+        function startSettingsListeners() {
+            settingsUnsubscribers.forEach(unsub => { try { unsub(); } catch (_) {} });
+            settingsUnsubscribers = [];
+            settingsUnsubscribers.push(onSnapshot(doc(db, 'settings', 'featured'), (snap) => {
+                featuredGameOverride = snap.exists() ? (snap.data().gameTitle || '') : '';
+                const select = document.getElementById('featured-game-select');
+                if (select) select.value = featuredGameOverride;
+                render();
+            }));
+            settingsUnsubscribers.push(onSnapshot(doc(db, 'settings', 'game_thumbnails'), (snap) => {
+                customGameThumbnails = snap.exists() ? (snap.data().map || {}) : {};
+                render();
+            }));
+        }
+
+        function stopSettingsListeners() {
+            settingsUnsubscribers.forEach(unsub => { try { unsub(); } catch (_) {} });
+            settingsUnsubscribers = [];
         }
 
         window.handleLogout = async () => {
@@ -3730,13 +3753,14 @@
         };
 
         async function loadSlowmodeSettings() {
+            const options = GAMES.map(g => `<option value="${g.title}">${g.title}</option>`).join('');
             const select = document.getElementById('featured-game-select');
             if (select) {
-                select.innerHTML = '<option value="">Auto (Top Rated)</option>' + GAMES.map(g => `<option value="${g.title}">${g.title}</option>`).join('');
+                select.innerHTML = '<option value="">Auto (Top Rated)</option>' + options;
             }
             const thumbSelect = document.getElementById('thumbnail-game-select');
             if (thumbSelect) {
-                thumbSelect.innerHTML = '<option value="">Select game...</option>' + GAMES.map(g => `<option value="${g.title}">${g.title}</option>`).join('');
+                thumbSelect.innerHTML = '<option value="">Select game...</option>' + options;
             }
             try {
                 const snap = await getDoc(doc(db, 'settings', 'chat'));
@@ -3748,17 +3772,7 @@
             if (slowEnabled) slowEnabled.checked = !!slowmodeSettings.enabled;
             if (slowSeconds) slowSeconds.value = slowmodeSettings.seconds || 5;
             if (slowBypass) slowBypass.value = (slowmodeSettings.bypassUsers || []).join(', ');
-            try {
-                const featuredSnap = await getDoc(doc(db, 'settings', 'featured'));
-                featuredGameOverride = featuredSnap.exists() ? (featuredSnap.data().gameTitle || '') : '';
-                if (select) select.value = featuredGameOverride;
-            } catch (_) {}
-            try {
-                const thumbSnap = await getDoc(doc(db, 'settings', 'game_thumbnails'));
-                customGameThumbnails = thumbSnap.exists() ? (thumbSnap.data().map || {}) : {};
-            } catch (_) {
-                customGameThumbnails = {};
-            }
+            if (select) select.value = featuredGameOverride || '';
             render();
         }
 
@@ -3775,9 +3789,13 @@
         window.saveFeaturedGameOverride = async () => {
             const select = document.getElementById('featured-game-select');
             featuredGameOverride = select?.value || '';
-            await setDoc(doc(db, 'settings', 'featured'), { gameTitle: featuredGameOverride, updatedAt: Date.now() });
-            render();
-            alert('Featured game updated.');
+            try {
+                await setDoc(doc(db, 'settings', 'featured'), { gameTitle: featuredGameOverride, updatedAt: Date.now() });
+                render();
+                alert('Featured game updated.');
+            } catch (e) {
+                alert(`Failed to update featured game: ${e?.message || e}`);
+            }
         };
 
         window.uploadGameThumbnail = async () => {
@@ -3793,18 +3811,26 @@
             });
             if (!dataUrl) return alert('Failed to read image file.');
             customGameThumbnails[gameTitle] = dataUrl;
-            await setDoc(doc(db, 'settings', 'game_thumbnails'), { map: customGameThumbnails, updatedAt: Date.now() });
-            render();
-            alert(`Thumbnail updated for ${gameTitle}.`);
+            try {
+                await setDoc(doc(db, 'settings', 'game_thumbnails'), { map: customGameThumbnails, updatedAt: Date.now() });
+                render();
+                alert(`Thumbnail updated for ${gameTitle}.`);
+            } catch (e) {
+                alert(`Failed to upload thumbnail: ${e?.message || e}`);
+            }
         };
 
         window.clearGameThumbnail = async () => {
             const gameTitle = document.getElementById('thumbnail-game-select')?.value;
             if (!gameTitle) return alert('Select a game first.');
             delete customGameThumbnails[gameTitle];
-            await setDoc(doc(db, 'settings', 'game_thumbnails'), { map: customGameThumbnails, updatedAt: Date.now() });
-            render();
-            alert(`Custom thumbnail cleared for ${gameTitle}.`);
+            try {
+                await setDoc(doc(db, 'settings', 'game_thumbnails'), { map: customGameThumbnails, updatedAt: Date.now() });
+                render();
+                alert(`Custom thumbnail cleared for ${gameTitle}.`);
+            } catch (e) {
+                alert(`Failed to clear thumbnail: ${e?.message || e}`);
+            }
         };
 
         window.setGambleTab = (tab) => {
