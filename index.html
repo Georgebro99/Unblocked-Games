@@ -1284,6 +1284,7 @@
                     <i data-lucide="send" class="w-4 h-4"></i>
                 </button>
             </div>
+            <div id="chat-mention-suggestions" class="hidden mt-2 bg-zinc-900 border border-zinc-800 rounded-lg p-2 space-y-1"></div>
         </div>
     </div>
 
@@ -2286,6 +2287,76 @@
             });
         }
         applyMentionTitleResetOnFocus();
+
+        function extractMentionQueryFromInput(input) {
+            if (!input) return null;
+            const value = input.value || '';
+            const caret = input.selectionStart ?? value.length;
+            const left = value.slice(0, caret);
+            const match = left.match(/(^|\s)@([a-zA-Z0-9_]*)$/);
+            if (!match) return null;
+            return {
+                query: (match[2] || '').toLowerCase(),
+                replaceStart: left.length - match[2].length,
+                replaceEnd: caret
+            };
+        }
+
+        function getMentionCandidates(query = '') {
+            const names = Object.values(userMetaById || {})
+                .map(u => (u?.username || '').trim())
+                .filter(Boolean);
+            const unique = Array.from(new Set(names));
+            const q = query.toLowerCase();
+            return unique.filter(name => !q || name.toLowerCase().startsWith(q)).slice(0, 8);
+        }
+
+        function applyMentionAutocomplete(input, suggestionBox, username, rangeInfo) {
+            if (!input || !rangeInfo) return;
+            const value = input.value || '';
+            const before = value.slice(0, rangeInfo.replaceStart);
+            const after = value.slice(rangeInfo.replaceEnd);
+            input.value = `${before}${username} ${after}`;
+            const nextPos = (before + username + ' ').length;
+            input.focus();
+            input.setSelectionRange(nextPos, nextPos);
+            suggestionBox.classList.add('hidden');
+            suggestionBox.innerHTML = '';
+        }
+
+        function setupMentionAutocomplete(inputId, boxId) {
+            const input = document.getElementById(inputId);
+            const box = document.getElementById(boxId);
+            if (!input || !box) return;
+            const update = () => {
+                const mention = extractMentionQueryFromInput(input);
+                if (!mention) {
+                    box.classList.add('hidden');
+                    box.innerHTML = '';
+                    return;
+                }
+                const candidates = getMentionCandidates(mention.query);
+                if (!candidates.length) {
+                    box.classList.add('hidden');
+                    box.innerHTML = '';
+                    return;
+                }
+                box.classList.remove('hidden');
+                box.innerHTML = candidates.map(name => `<button type="button" class="block w-full text-left text-xs px-2 py-1 rounded hover:bg-zinc-800" data-name="${encodeURIComponent(name)}">@${escapeHtml(name)}</button>`).join('');
+                box.querySelectorAll('button[data-name]').forEach(btn => {
+                    btn.addEventListener('click', () => applyMentionAutocomplete(input, box, decodeURIComponent(btn.getAttribute('data-name') || ''), mention));
+                });
+            };
+            input.addEventListener('input', update);
+            input.addEventListener('click', update);
+            input.addEventListener('keyup', update);
+            input.addEventListener('blur', () => setTimeout(() => box.classList.add('hidden'), 120));
+        }
+
+        window.addEventListener('load', () => {
+            setupMentionAutocomplete('chat-input', 'chat-mention-suggestions');
+            setupMentionAutocomplete('dm-input', 'dm-mention-suggestions');
+        });
         // Social
         window.toggleSocialModal = () => {
             const socialModal = document.getElementById('social-modal');
@@ -2744,6 +2815,7 @@
                 if (blocked.includes(m.uid)) return;
                 const isMine = m.uid === currentUser.uid;
                 const isAdminUser = currentUserProfile.role === 'admin';
+                const reactionCount = Object.values(m.reactions || {}).reduce((sum, arr) => sum + (Array.isArray(arr) ? arr.length : 0), 0);
                 const div = document.createElement('div');
                 div.className = `message-container ${isMine ? 'items-end' : 'items-start'}`;
                 div.innerHTML = `
@@ -2760,7 +2832,7 @@
                             ${isAdminUser && !isMine ? `<button onclick=\"warnUser('${m.uid}')\" class=\"text-[10px] text-yellow-400 hover:underline\">Warn</button>` : ''}
                             <button onclick="setReply('${id}', '${m.user}', \`${(m.text || '').replace(/`/g, '')}\`)" class="text-[10px] text-blue-400 hover:underline">Reply</button>
                         </div>
-                        <div class="flex gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div class="flex gap-1 mt-2 ${reactionCount > 0 ? '' : 'opacity-0 group-hover:opacity-100'} transition-opacity">
                             ${['👍','🔥','😂','❤️'].map(e=>`<button onclick=\"toggleReaction('${id}','${e}')\" class=\"text-xs px-1.5 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700\">${e} ${(m.reactions?.[e]||[]).length}</button>`).join('')}
                         </div>
                     </div>
@@ -3248,7 +3320,7 @@
                         <div class="flex justify-between items-start">
                             <div class="flex flex-col">
                                 <span class="font-black text-lg tracking-tight">${data.username}</span>
-                                <span class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">${data.role} • ${data.points || 0} pts • Lvl ${data.level || 1}</span>
+                                <span class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">${data.ownerTag ? 'owner' : data.role} • ${data.points || 0} pts • Lvl ${data.level || 1}</span>
                             </div>
                             <div class="flex gap-1">
                                 ${userBadges.map(b => BADGES[b] ? `<i data-lucide="${BADGES[b].icon}" class="w-4 h-4 ${BADGES[b].color}" title="${BADGES[b].description}"></i>` : '').join('')}
@@ -3257,6 +3329,9 @@
                         <div class="flex flex-wrap gap-2">
                             <button onclick="adminAction('${d.id}', 'mute')" class="bg-zinc-800 hover:bg-yellow-600/20 text-xs px-3 py-1.5 rounded-lg border border-zinc-700 transition-all">${data.muted ? 'Unmute' : 'Mute'}</button>
                             <button onclick="adminAction('${d.id}', 'ban')" class="bg-zinc-800 hover:bg-red-600/20 text-xs px-3 py-1.5 rounded-lg border border-zinc-700 transition-all">${data.banned ? 'Unban' : 'Ban'}</button>
+                            <button onclick="setUserRole('${d.id}', 'user')" class="bg-zinc-800 hover:bg-slate-600/20 text-xs px-3 py-1.5 rounded-lg border border-zinc-700 transition-all">Make User</button>
+                            <button onclick="setUserRole('${d.id}', 'admin')" class="bg-zinc-800 hover:bg-blue-600/20 text-xs px-3 py-1.5 rounded-lg border border-zinc-700 transition-all">Make Admin</button>
+                            <button onclick="setUserRole('${d.id}', 'owner')" class="bg-zinc-800 hover:bg-purple-600/20 text-xs px-3 py-1.5 rounded-lg border border-zinc-700 transition-all">Make Owner</button>
                             <button onclick="manageUserBadges('${d.id}', '${data.username}')" class="bg-zinc-800 hover:bg-blue-600/20 text-xs px-3 py-1.5 rounded-lg border border-zinc-700 transition-all">Badges</button>
                             <button onclick="editUserStats('${d.id}', '${data.username}')" class="bg-zinc-800 hover:bg-green-600/20 text-xs px-3 py-1.5 rounded-lg border border-zinc-700 transition-all">Stats</button>
                             <button onclick="adminAction('${d.id}', 'delete_messages')" class="bg-zinc-800 hover:bg-orange-600/20 text-xs px-3 py-1.5 rounded-lg border border-zinc-700 transition-all text-orange-500">Clear Chat</button>
@@ -3391,6 +3466,24 @@
                 }
             }
             loadUsers();
+        };
+
+        window.setUserRole = async (id, role) => {
+            if (!['user', 'admin', 'owner'].includes(role)) return;
+            const patch = { approved: true };
+            if (role === 'owner') {
+                patch.role = 'admin';
+                patch.ownerTag = true;
+            } else if (role === 'admin') {
+                patch.role = 'admin';
+                patch.ownerTag = false;
+            } else {
+                patch.role = 'user';
+                patch.ownerTag = false;
+            }
+            await updateDoc(doc(db, "users", id), patch);
+            loadUsers();
+            alert(`Role updated to ${role}.`);
         };
 
         const PROFILE_COSMETICS = [
@@ -4524,6 +4617,7 @@
                         <i data-lucide="send" class="w-4 h-4"></i>
                     </button>
                 </div>
+                <div id="dm-mention-suggestions" class="hidden mt-2 bg-zinc-900 border border-zinc-800 rounded-lg p-2 space-y-1"></div>
             </div>
         </div>
     </div>
