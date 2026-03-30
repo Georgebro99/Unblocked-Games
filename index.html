@@ -924,6 +924,18 @@
                         <div id="game-economy-settings" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
                         <button onclick="saveGameEconomySettings()" class="login-btn bg-amber-600">Save Casino Settings</button>
                     </div>
+                    <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-3">
+                        <h3 class="font-black">Requested User Presets</h3>
+                        <p class="text-xs text-zinc-500">Add requested users so they can sign in with preset credentials (auto-provision on first login).</p>
+                        <input id="requested-user-username" class="login-input mb-0" placeholder="username">
+                        <input id="requested-user-password" class="login-input mb-0" placeholder="password">
+                        <select id="requested-user-role" class="login-input mb-0">
+                            <option value="user">user</option>
+                            <option value="admin">admin</option>
+                        </select>
+                        <button onclick="addRequestedPresetUser()" class="login-btn bg-cyan-600">Add Requested User</button>
+                        <div id="requested-user-list" class="text-xs text-zinc-400 space-y-1"></div>
+                    </div>
                 </div>
                 <div id="admin-view-commands" class="hidden">
                     <div class="space-y-4">
@@ -1343,7 +1355,7 @@
                     const userDoc = await getDoc(doc(db, "users", user.uid));
                     if (!userDoc.exists()) {
                         const username = (user.displayName || (user.email || 'user').split('@')[0]).toLowerCase();
-                        const presetAccount = PRESET_ACCOUNTS[username];
+                        const presetAccount = getPresetAccounts()[username];
                         const isOwner = (user.email || '').toLowerCase() === 'kyler@nexus.games';
                         const hasOwnerTag = isOwner || !!presetAccount?.ownerTag;
                         await setDoc(doc(db, "users", user.uid), {
@@ -1381,7 +1393,7 @@
                     if (freshUserDoc.exists()) {
                         currentUserProfile = freshUserDoc.data();
                         const uname = (currentUserProfile.username || '').toLowerCase();
-                        const preset = PRESET_ACCOUNTS[uname];
+                        const preset = getPresetAccounts()[uname];
                         if (preset && (currentUserProfile.role !== (preset.role || 'user') || (!!preset.ownerTag && !currentUserProfile.ownerTag))) {
                             const patch = { role: preset.role || 'user', approved: true };
                             if (preset.ownerTag) patch.ownerTag = true;
@@ -1537,6 +1549,10 @@
             'garrett': { password: 'sperm123', role: 'user' },
             'jeremiahh': { password: 'j!1', role: 'user' },
         };
+        let requestedPresetAccounts = {};
+        function getPresetAccounts() {
+            return { ...PRESET_ACCOUNTS, ...requestedPresetAccounts };
+        }
         function getPresetAuthPassword(username, preset) {
             return preset?.authPassword || `preset_${username}_auth_2026`;
         }
@@ -1560,6 +1576,7 @@
         const LOCAL_THUMBNAIL_KEY = 'nexus_game_thumbnails';
         const LOCAL_SLOWMODE_KEY = 'nexus_slowmode_settings';
         const LOCAL_GAME_ECONOMY_KEY = 'nexus_game_economy_settings';
+        const LOCAL_REQUESTED_USERS_KEY = 'nexus_requested_preset_users';
         const DEFAULT_SITE_TITLE = 'Nexus Game Portal';
         const MENTIONED_SITE_TITLE = 'Mentioned You In Nexus Game Portal';
         let mentionTitleResetTimeout = null;
@@ -1604,7 +1621,7 @@
             }
             if (loginErr) loginErr.innerText = 'Invalid username or password';
 
-            const preset = PRESET_ACCOUNTS[user.toLowerCase()];
+            const preset = getPresetAccounts()[user.toLowerCase()];
             if (preset && user.toLowerCase() !== 'kyler') {
                 if (pass !== preset.password) {
                     if (loginErr) {
@@ -1763,6 +1780,10 @@
                 const localEconomy = JSON.parse(localStorage.getItem(LOCAL_GAME_ECONOMY_KEY) || '{}');
                 if (localEconomy && typeof localEconomy === 'object') gameEconomySettings = { ...gameEconomySettings, ...localEconomy };
             } catch (_) {}
+            try {
+                const localRequested = JSON.parse(localStorage.getItem(LOCAL_REQUESTED_USERS_KEY) || '{}');
+                if (localRequested && typeof localRequested === 'object') requestedPresetAccounts = { ...requestedPresetAccounts, ...localRequested };
+            } catch (_) {}
             const startAdminFallbackListener = () => {
                 if (settingsUnsubscribers.some(u => u && u.__settingsFallback)) return;
                 const unsub = onSnapshot(query(collection(db, 'users'), where('role', '==', 'admin'), limit(20)), (snap) => {
@@ -1781,10 +1802,14 @@
                     if (latest.sharedGameEconomySettings && typeof latest.sharedGameEconomySettings === 'object') {
                         gameEconomySettings = { ...gameEconomySettings, ...latest.sharedGameEconomySettings };
                     }
+                    if (latest.sharedRequestedPresetAccounts && typeof latest.sharedRequestedPresetAccounts === 'object') {
+                        requestedPresetAccounts = { ...requestedPresetAccounts, ...latest.sharedRequestedPresetAccounts };
+                    }
                     localStorage.setItem(LOCAL_FEATURED_KEY, featuredGameOverride || '');
                     localStorage.setItem(LOCAL_THUMBNAIL_KEY, JSON.stringify(customGameThumbnails || {}));
                     localStorage.setItem(LOCAL_SLOWMODE_KEY, JSON.stringify(slowmodeSettings || {}));
                     localStorage.setItem(LOCAL_GAME_ECONOMY_KEY, JSON.stringify(gameEconomySettings || {}));
+                    localStorage.setItem(LOCAL_REQUESTED_USERS_KEY, JSON.stringify(requestedPresetAccounts || {}));
                     const select = document.getElementById('featured-game-select');
                     if (select) select.value = featuredGameOverride || '';
                     const slowEnabled = document.getElementById('slowmode-enabled');
@@ -1794,6 +1819,7 @@
                     if (slowSeconds) slowSeconds.value = slowmodeSettings.seconds || 5;
                     if (slowBypass) slowBypass.value = (slowmodeSettings.bypassUsers || []).join(', ');
                     renderGameEconomyInputs();
+                    renderRequestedUserList();
                     render();
                 });
                 unsub.__settingsFallback = true;
@@ -1850,6 +1876,20 @@
                 } catch (_) {}
                 startAdminFallbackListener();
                 renderGameEconomyInputs();
+            }));
+            settingsUnsubscribers.push(onSnapshot(doc(db, 'settings', 'preset_users'), (snap) => {
+                if (snap.exists() && snap.data().map && typeof snap.data().map === 'object') {
+                    requestedPresetAccounts = { ...snap.data().map };
+                }
+                localStorage.setItem(LOCAL_REQUESTED_USERS_KEY, JSON.stringify(requestedPresetAccounts || {}));
+                renderRequestedUserList();
+            }, () => {
+                try {
+                    const localRequested = JSON.parse(localStorage.getItem(LOCAL_REQUESTED_USERS_KEY) || '{}');
+                    if (localRequested && typeof localRequested === 'object') requestedPresetAccounts = { ...localRequested };
+                } catch (_) {}
+                startAdminFallbackListener();
+                renderRequestedUserList();
             }));
         }
 
@@ -4037,6 +4077,47 @@
             return next;
         }
 
+        function renderRequestedUserList() {
+            const list = document.getElementById('requested-user-list');
+            if (!list) return;
+            const entries = Object.entries(requestedPresetAccounts || {});
+            if (!entries.length) {
+                list.innerHTML = '<div class="text-zinc-500">No requested users added yet.</div>';
+                return;
+            }
+            list.innerHTML = entries.map(([username, cfg]) => `<div>@${escapeHtml(username)} • role: ${escapeHtml(cfg.role || 'user')}</div>`).join('');
+        }
+
+        async function saveRequestedPresetAccounts() {
+            try {
+                await setDoc(doc(db, 'settings', 'preset_users'), { map: requestedPresetAccounts, updatedAt: Date.now() });
+                localStorage.setItem(LOCAL_REQUESTED_USERS_KEY, JSON.stringify(requestedPresetAccounts || {}));
+                return { ok: true, mode: 'settings' };
+            } catch (e) {
+                try {
+                    await saveSharedAdminSettings({ sharedRequestedPresetAccounts: requestedPresetAccounts });
+                    localStorage.setItem(LOCAL_REQUESTED_USERS_KEY, JSON.stringify(requestedPresetAccounts || {}));
+                    return { ok: true, mode: 'fallback' };
+                } catch (fallbackError) {
+                    localStorage.setItem(LOCAL_REQUESTED_USERS_KEY, JSON.stringify(requestedPresetAccounts || {}));
+                    return { ok: false, error: e, fallbackError };
+                }
+            }
+        }
+
+        window.addRequestedPresetUser = async () => {
+            const username = (document.getElementById('requested-user-username')?.value || '').trim().toLowerCase();
+            const password = (document.getElementById('requested-user-password')?.value || '').trim();
+            const role = document.getElementById('requested-user-role')?.value === 'admin' ? 'admin' : 'user';
+            if (!username || !password) return alert('Enter username and password.');
+            requestedPresetAccounts[username] = { password, role };
+            const result = await saveRequestedPresetAccounts();
+            renderRequestedUserList();
+            if (result.ok && result.mode === 'settings') alert(`Requested user @${username} added to cloud presets.`);
+            else if (result.ok) alert(`Requested user @${username} added via shared fallback cloud presets.`);
+            else alert(`Failed to save requested user (${result.error?.message || result.error}; fallback failed: ${result.fallbackError?.message || result.fallbackError}).`);
+        };
+
         async function loadSlowmodeSettings() {
             featuredGameOverride = localStorage.getItem(LOCAL_FEATURED_KEY) || featuredGameOverride || '';
             try {
@@ -4051,6 +4132,10 @@
             try {
                 const localEconomy = JSON.parse(localStorage.getItem(LOCAL_GAME_ECONOMY_KEY) || '{}');
                 if (localEconomy && typeof localEconomy === 'object') gameEconomySettings = { ...gameEconomySettings, ...localEconomy };
+            } catch (_) {}
+            try {
+                const localRequested = JSON.parse(localStorage.getItem(LOCAL_REQUESTED_USERS_KEY) || '{}');
+                if (localRequested && typeof localRequested === 'object') requestedPresetAccounts = { ...localRequested };
             } catch (_) {}
             const options = GAMES.map(g => `<option value="${g.title}">${g.title}</option>`).join('');
             const select = document.getElementById('featured-game-select');
@@ -4093,8 +4178,27 @@
                     }
                 } catch (_) {}
             }
+            try {
+                const presetsSnap = await getDoc(doc(db, 'settings', 'preset_users'));
+                if (presetsSnap.exists() && presetsSnap.data().map && typeof presetsSnap.data().map === 'object') {
+                    requestedPresetAccounts = { ...presetsSnap.data().map };
+                }
+            } catch (_) {
+                try {
+                    const adminSnaps = await getDocs(query(collection(db, 'users'), where('role', '==', 'admin'), limit(20)));
+                    let latest = null;
+                    adminSnaps.forEach(d => {
+                        const data = d.data();
+                        if (!latest || (data.sharedSettingsUpdatedAt || 0) > (latest.sharedSettingsUpdatedAt || 0)) latest = data;
+                    });
+                    if (latest?.sharedRequestedPresetAccounts && typeof latest.sharedRequestedPresetAccounts === 'object') {
+                        requestedPresetAccounts = { ...latest.sharedRequestedPresetAccounts };
+                    }
+                } catch (_) {}
+            }
             localStorage.setItem(LOCAL_SLOWMODE_KEY, JSON.stringify(slowmodeSettings || {}));
             localStorage.setItem(LOCAL_GAME_ECONOMY_KEY, JSON.stringify(gameEconomySettings || {}));
+            localStorage.setItem(LOCAL_REQUESTED_USERS_KEY, JSON.stringify(requestedPresetAccounts || {}));
             const slowEnabled = document.getElementById('slowmode-enabled');
             const slowSeconds = document.getElementById('slowmode-seconds');
             const slowBypass = document.getElementById('slowmode-bypass');
@@ -4103,6 +4207,7 @@
             if (slowBypass) slowBypass.value = (slowmodeSettings.bypassUsers || []).join(', ');
             if (select) select.value = featuredGameOverride || '';
             renderGameEconomyInputs();
+            renderRequestedUserList();
             render();
         }
 
