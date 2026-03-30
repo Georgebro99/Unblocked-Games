@@ -909,6 +909,15 @@
                         <select id="featured-game-select" class="login-input mb-0"></select>
                         <button onclick="saveFeaturedGameOverride()" class="login-btn bg-violet-600">Save Featured Game</button>
                     </div>
+                    <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-3">
+                        <h3 class="font-black">Game Thumbnail Upload</h3>
+                        <select id="thumbnail-game-select" class="login-input mb-0"></select>
+                        <input id="thumbnail-file-input" type="file" accept="image/*" class="login-input mb-0 file:mr-2 file:rounded file:border-0 file:bg-zinc-800 file:px-2 file:py-1 file:text-xs file:text-zinc-200">
+                        <div class="flex gap-2">
+                            <button onclick="uploadGameThumbnail()" class="login-btn bg-emerald-600">Upload Thumbnail</button>
+                            <button onclick="clearGameThumbnail()" class="login-btn bg-zinc-700">Clear Custom</button>
+                        </div>
+                    </div>
                 </div>
                 <div id="admin-view-commands" class="hidden">
                     <div class="space-y-4">
@@ -1507,7 +1516,7 @@
         let profileViewingUserId = null;
         let profileViewingUsername = '';
         let profileViewingFriends = [];
-        let blackjackState = { inRound: false, dealer: 0, player: 0, dealerCards: [], playerCards: [] };
+        let blackjackState = { inRound: false, dealer: 0, player: 0, dealerCards: [], playerCards: [], bet: 20 };
         let userMetaById = {};
         let topPointsUid = null;
         let replyToMessage = null;
@@ -1517,6 +1526,8 @@
         let lastMessagePointAt = 0;
         let presenceHeartbeat = null;
         let cachedChatMessages = [];
+        let customGameThumbnails = {};
+        let profileDocUnsubscribe = null;
 
         const GAMES = [
             { title: 'Nexus Slots', category: 'Casino', url: 'javascript:openSlots()', img: 'https://www.google.com/s2/favicons?domain=javascript:openSlots()&sz=256' },
@@ -1753,7 +1764,7 @@
             // Calculate average ratings
             const gamesWithRatings = GAMES.map(g => {
                 const r = gameRatings[g.title] || { avg: 0, count: 0 };
-                return { ...g, ...r };
+                return { ...g, img: customGameThumbnails[g.title] || g.img, ...r };
             });
 
             // Sort by rating to find featured
@@ -3281,14 +3292,20 @@
 
         // Profile
         window.showOwnProfile = () => {
-            renderProfileData(currentUserProfile, true, currentUser.uid);
+            if (profileDocUnsubscribe) profileDocUnsubscribe();
+            profileDocUnsubscribe = onSnapshot(doc(db, "users", currentUser.uid), (snap) => {
+                if (!snap.exists()) return;
+                currentUserProfile = { ...currentUserProfile, ...snap.data() };
+                renderProfileData(snap.data(), true, currentUser.uid);
+            });
         };
 
         window.showUserProfile = async (userId) => {
-            const userDoc = await getDoc(doc(db, "users", userId));
-            if (userDoc.exists()) {
-                renderProfileData(userDoc.data(), false, userId);
-            }
+            if (profileDocUnsubscribe) profileDocUnsubscribe();
+            profileDocUnsubscribe = onSnapshot(doc(db, "users", userId), (snap) => {
+                if (!snap.exists()) return;
+                renderProfileData(snap.data(), userId === currentUser.uid, userId);
+            });
         };
 
         async function getFriendsForUser(userId) {
@@ -3528,6 +3545,10 @@
         window.closeProfile = () => {
             const profileModal = document.getElementById('profile-modal');
             if (profileModal) profileModal.classList.add('hidden');
+            if (profileDocUnsubscribe) {
+                profileDocUnsubscribe();
+                profileDocUnsubscribe = null;
+            }
         };
         window.handleProfileAvatarUpload = async (event) => {
             const file = event?.target?.files?.[0];
@@ -3721,6 +3742,13 @@
                 featuredGameOverride = featuredSnap.exists() ? (featuredSnap.data().gameTitle || '') : '';
                 select.value = featuredGameOverride;
             }
+            const thumbSnap = await getDoc(doc(db, 'settings', 'game_thumbnails'));
+            customGameThumbnails = thumbSnap.exists() ? (thumbSnap.data().map || {}) : {};
+            const thumbSelect = document.getElementById('thumbnail-game-select');
+            if (thumbSelect) {
+                thumbSelect.innerHTML = '<option value=\"\">Select game...</option>' + GAMES.map(g => `<option value=\"${g.title}\">${g.title}</option>`).join('');
+            }
+            render();
         }
 
         window.saveSlowmodeSettings = async () => {
@@ -3739,6 +3767,33 @@
             await setDoc(doc(db, 'settings', 'featured'), { gameTitle: featuredGameOverride, updatedAt: Date.now() });
             render();
             alert('Featured game updated.');
+        };
+
+        window.uploadGameThumbnail = async () => {
+            const gameTitle = document.getElementById('thumbnail-game-select')?.value;
+            const file = document.getElementById('thumbnail-file-input')?.files?.[0];
+            if (!gameTitle) return alert('Select a game first.');
+            if (!file) return alert('Choose an image file.');
+            const dataUrl = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(String(reader.result || ''));
+                reader.onerror = () => resolve('');
+                reader.readAsDataURL(file);
+            });
+            if (!dataUrl) return alert('Failed to read image file.');
+            customGameThumbnails[gameTitle] = dataUrl;
+            await setDoc(doc(db, 'settings', 'game_thumbnails'), { map: customGameThumbnails, updatedAt: Date.now() });
+            render();
+            alert(`Thumbnail updated for ${gameTitle}.`);
+        };
+
+        window.clearGameThumbnail = async () => {
+            const gameTitle = document.getElementById('thumbnail-game-select')?.value;
+            if (!gameTitle) return alert('Select a game first.');
+            delete customGameThumbnails[gameTitle];
+            await setDoc(doc(db, 'settings', 'game_thumbnails'), { map: customGameThumbnails, updatedAt: Date.now() });
+            render();
+            alert(`Custom thumbnail cleared for ${gameTitle}.`);
         };
 
         window.setGambleTab = (tab) => {
@@ -3764,7 +3819,7 @@
             await updateDoc(doc(db, 'users', currentUser.uid), { points: currentUserProfile.points });
             updatePointsDisplay();
             const resDiv = document.getElementById('slots-result');
-            resDiv.innerText = `Coin landed on ${flip}. ${win > 0 ? 'You won +10!' : 'You lost 10.'}`;
+            resDiv.innerText = `Coin landed on ${flip}. ${win > 0 ? `You won +${bet}!` : `You lost ${bet}.`}`;
             resDiv.className = win > 0 ? 'text-green-500 font-bold' : 'text-red-500 font-bold';
         };
 
@@ -3794,6 +3849,7 @@
             blackjackState.dealer = blackjackState.dealerCards.reduce((a,b)=>a+b,0);
             blackjackState.player = blackjackState.playerCards.reduce((a,b)=>a+b,0);
             blackjackState.inRound = true;
+            blackjackState.bet = bet;
             document.getElementById('bj-dealer').innerText = blackjackState.dealer;
             document.getElementById('bj-player').innerText = blackjackState.player;
             renderBlackjackCards();
@@ -3809,10 +3865,10 @@
             renderBlackjackCards();
             if (blackjackState.player > 21) {
                 blackjackState.inRound = false;
-                currentUserProfile.points -= 20;
+                currentUserProfile.points -= blackjackState.bet;
                 await updateDoc(doc(db, 'users', currentUser.uid), { points: currentUserProfile.points });
                 updatePointsDisplay();
-                document.getElementById('slots-result').innerText = 'Bust! -20 points';
+                document.getElementById('slots-result').innerText = `Bust! -${blackjackState.bet} points`;
             }
         };
 
@@ -3822,7 +3878,7 @@
             renderBlackjackCards();
             document.getElementById('bj-dealer').innerText = blackjackState.dealer;
             blackjackState.inRound = false;
-            const bet = getBetAmount(20);
+            const bet = blackjackState.bet || getBetAmount(20);
             let delta = -bet;
             if (blackjackState.dealer > 21 || blackjackState.player > blackjackState.dealer) delta = bet;
             if (blackjackState.player === blackjackState.dealer) delta = 0;
@@ -3848,7 +3904,7 @@
             const diceFaces=['⚀','⚁','⚂','⚃','⚄','⚅'];
             document.getElementById('dice-visual').innerText = rolls.map(r=>diceFaces[r-1]).join(' ');
             document.getElementById('dice-result').innerText = `Rolls: ${rolls.join(', ')} (total ${total})`; 
-            document.getElementById('slots-result').innerText = delta > 0 ? `🎲 Nice! ${delta>20?'Exact +40':'Close +20'}` : 'Missed -10';
+            document.getElementById('slots-result').innerText = delta > 0 ? `🎲 Nice! +${delta}` : `Missed -${bet}`;
         };
 
         // Leaderboard
