@@ -209,8 +209,8 @@ service cloud.firestore {
       // Everyone approved can read settings so featured overrides/thumbnails propagate server-wide.
       allow read: if isApproved();
 
-      // Only admins can change settings docs.
-      allow create, update, delete: if isAdmin();
+      // Allow approved users to update shared settings docs (featured override / thumbnails).
+      allow create, update, delete: if isApproved();
     }
   }
 }
