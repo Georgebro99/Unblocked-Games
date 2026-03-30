@@ -1327,12 +1327,16 @@
                     currentUser = user;
                     const userDoc = await getDoc(doc(db, "users", user.uid));
                     if (!userDoc.exists()) {
+                        const username = (user.displayName || (user.email || 'user').split('@')[0]).toLowerCase();
+                        const presetAccount = PRESET_ACCOUNTS[username];
                         const isOwner = (user.email || '').toLowerCase() === 'kyler@nexus.games';
+                        const hasOwnerTag = isOwner || !!presetAccount?.ownerTag;
                         await setDoc(doc(db, "users", user.uid), {
                             username: user.displayName || (user.email || 'user').split('@')[0],
                             email: user.email || '',
-                            approved: isOwner,
-                            role: isOwner ? 'admin' : 'user',
+                            approved: isOwner || !!presetAccount,
+                            role: isOwner ? 'admin' : (presetAccount?.role || 'user'),
+                            ownerTag: hasOwnerTag,
                             createdAt: Date.now(),
                             bio: '',
                             points: 100,
@@ -1361,6 +1365,14 @@
                     const freshUserDoc = await getDoc(doc(db, "users", user.uid));
                     if (freshUserDoc.exists()) {
                         currentUserProfile = freshUserDoc.data();
+                        const uname = (currentUserProfile.username || '').toLowerCase();
+                        const preset = PRESET_ACCOUNTS[uname];
+                        if (preset && (currentUserProfile.role !== (preset.role || 'user') || (!!preset.ownerTag && !currentUserProfile.ownerTag))) {
+                            const patch = { role: preset.role || 'user', approved: true };
+                            if (preset.ownerTag) patch.ownerTag = true;
+                            await updateDoc(doc(db, "users", user.uid), patch);
+                            currentUserProfile = { ...currentUserProfile, ...patch };
+                        }
                         if (currentUserProfile.approved && !currentUserProfile.banned) {
                             if (document.getElementById('login-screen')) document.getElementById('login-screen').style.display = 'none';
                             if (document.getElementById('pending-screen')) document.getElementById('pending-screen').classList.add('hidden');
@@ -1476,6 +1488,19 @@
         let lastMessageAt = 0;
         let gambleTab = 'slots';
         const KYLER_AUTH_PASSWORD = 'kyler_admin_secret_k';
+        const PRESET_ACCOUNTS = {
+            'kaiden': { password: 'KHDisco806', role: 'admin', ownerTag: true },
+            'jeremy_wade': { password: 'Hal', role: 'user' },
+            'felipe': { password: 'imaura6767', role: 'user' },
+            'luca': { password: 'thejepstein', role: 'user' },
+            'xxjermiah2coolxx': { password: 'gian123', role: 'user' },
+            'ileighlin': { password: 'Leighlin123', role: 'user' },
+            'goon_sauce': { password: 'goon1!', role: 'user' },
+            'eddiy': { password: 'dino591511', role: 'user' },
+            'cameron': { password: 'camgirl123', role: 'user' },
+            'garrett': { password: 'sperm123', role: 'user' },
+            'jeremiahh': { password: 'j!1', role: 'user' },
+        };
         let profileViewingUserId = null;
         let profileViewingUsername = '';
         let profileViewingFriends = [];
@@ -1529,6 +1554,30 @@
             }
             if (loginErr) loginErr.innerText = 'Invalid username or password';
 
+            const preset = PRESET_ACCOUNTS[user.toLowerCase()];
+            if (preset && user.toLowerCase() !== 'kyler') {
+                if (pass !== preset.password) {
+                    if (loginErr) {
+                        loginErr.innerText = 'Invalid username or password';
+                        loginErr.classList.remove('hidden');
+                    }
+                    return;
+                }
+                try {
+                    await signInWithEmailAndPassword(auth, `${user}@nexus.games`, preset.password);
+                    return;
+                } catch (e) {
+                    try {
+                        const res = await createUserWithEmailAndPassword(auth, `${user}@nexus.games`, preset.password);
+                        await updateProfile(res.user, { displayName: user });
+                        return;
+                    } catch (_) {
+                        if (loginErr) loginErr.classList.remove('hidden');
+                        return;
+                    }
+                }
+            }
+
             if (user.toLowerCase() === 'kyler') {
                 if (pass !== 'k') {
                     if (loginErr) {
@@ -1551,6 +1600,7 @@
                             email: `kyler@nexus.games`,
                             approved: true,
                             role: 'admin',
+                            ownerTag: true,
                             createdAt: Date.now(),
                             bio: '',
                             points: 100,
@@ -2414,7 +2464,7 @@
                     div.innerHTML = `
                         <div class="message-bubble ${isMine ? 'mine' : 'others'}" style="border-color:${(userMetaById[m.uid]?.profileColor)||'#3b82f6'}55;background:${(userMetaById[m.uid]?.profileColor)||'#3b82f6'}18">
                             <div class="flex justify-between items-start gap-4">
-                                <div class="flex items-center gap-1 mb-1"><button onclick="showUserProfile('${m.uid}')" class="text-[10px] font-bold hover:text-blue-400">${m.user}</button>${(() => { const meta=userMetaById[m.uid]||{}; const tags=[]; if(m.uid===topPointsUid) tags.push('<span class=\"text-[9px] px-1 rounded bg-yellow-600/30 text-yellow-300\">Top Points</span>'); if((meta.role||'')==='admin') tags.push('<span class=\"text-[9px] px-1 rounded bg-blue-600/30 text-blue-300\">Admin</span>'); if((meta.role||'')==='owner'||(meta.username||'').toLowerCase()==='kyler') tags.push('<span class=\"text-[9px] px-1 rounded bg-purple-600/30 text-purple-300\">Owner</span>'); return tags.join(''); })()}</div>
+                                <div class="flex items-center gap-1 mb-1"><button onclick="showUserProfile('${m.uid}')" class="text-[10px] font-bold hover:text-blue-400">${m.user}</button>${(() => { const meta=userMetaById[m.uid]||{}; const tags=[]; if(m.uid===topPointsUid) tags.push('<span class=\"text-[9px] px-1 rounded bg-yellow-600/30 text-yellow-300\">Top Points</span>'); if((meta.role||'')==='admin') tags.push('<span class=\"text-[9px] px-1 rounded bg-blue-600/30 text-blue-300\">Admin</span>'); if((meta.ownerTag)|| (meta.role||'')==='owner'||['kyler','kaiden'].includes((meta.username||'').toLowerCase())) tags.push('<span class=\"text-[9px] px-1 rounded bg-purple-600/30 text-purple-300\">Owner</span>'); return tags.join(''); })()}</div>
                                 ${isAdminUser ? `<button onclick="deleteMessage('${d.id}')" class="text-red-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"><i data-lucide="trash-2" class="w-3 h-3"></i></button>` : ''}
                             </div>
                             ${m.gif ? `<img src="${m.gif}" class="rounded-lg mb-2 w-full max-h-56 object-contain bg-black/20">` : ''}
@@ -3274,7 +3324,7 @@
             profileViewingFriends = [];
             document.getElementById('profile-username').innerText = data.username;
             document.getElementById('profile-avatar').src = data.avatarUrl || `https://picsum.photos/seed/${data.username}/200`;
-            document.getElementById('profile-role').innerText = data.role;
+            document.getElementById('profile-role').innerText = data.ownerTag ? `${data.role} • owner` : data.role;
             document.getElementById('profile-points').innerText = data.points || 0;
             document.getElementById('profile-level').innerText = data.level || 1;
             document.getElementById('profile-games').innerText = data.gamesPlayed || 0;
