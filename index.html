@@ -1725,6 +1725,25 @@
             } catch (_) {
                 customGameThumbnails = {};
             }
+            const startAdminFallbackListener = () => {
+                if (settingsUnsubscribers.some(u => u && u.__settingsFallback)) return;
+                const unsub = onSnapshot(query(collection(db, 'users'), where('role', '==', 'admin'), limit(20)), (snap) => {
+                    if (snap.empty) return;
+                    let latest = null;
+                    snap.forEach(d => {
+                        const data = d.data();
+                        if (!latest || (data.sharedSettingsUpdatedAt || 0) > (latest.sharedSettingsUpdatedAt || 0)) latest = data;
+                    });
+                    if (!latest) return;
+                    if (latest.sharedFeaturedGame) featuredGameOverride = latest.sharedFeaturedGame;
+                    if (latest.sharedGameThumbnails && typeof latest.sharedGameThumbnails === 'object') customGameThumbnails = latest.sharedGameThumbnails;
+                    const select = document.getElementById('featured-game-select');
+                    if (select) select.value = featuredGameOverride || '';
+                    render();
+                });
+                unsub.__settingsFallback = true;
+                settingsUnsubscribers.push(unsub);
+            };
             settingsUnsubscribers.push(onSnapshot(doc(db, 'settings', 'featured'), (snap) => {
                 featuredGameOverride = snap.exists() ? (snap.data().gameTitle || '') : '';
                 localStorage.setItem(LOCAL_FEATURED_KEY, featuredGameOverride || '');
@@ -1733,6 +1752,7 @@
                 render();
             }, () => {
                 featuredGameOverride = localStorage.getItem(LOCAL_FEATURED_KEY) || '';
+                startAdminFallbackListener();
                 render();
             }));
             settingsUnsubscribers.push(onSnapshot(doc(db, 'settings', 'game_thumbnails'), (snap) => {
@@ -1745,6 +1765,7 @@
                 } catch (_) {
                     customGameThumbnails = {};
                 }
+                startAdminFallbackListener();
                 render();
             }));
         }
